@@ -24,9 +24,9 @@ class OscillatorEngine {
     private var audioBuffers: [UInt8: [AVAudioPCMBuffer]] = [:] // Array of 3 buffers per note
     private var noteMixers: [UInt8: AVAudioMixerNode] = [:]     // One mixer per note
     
-    var osc1Settings = OscillatorSettings(waveform: .sine, level: 1.0)
-    var osc2Settings = OscillatorSettings(waveform: .sawtooth, pitch: 12.0, level: 0.7)
-    var osc3Settings = OscillatorSettings(waveform: .square, pitch: -12.0, level: 0.5)
+    var osc1Settings = OscillatorSettings(waveform: .sawtooth, level: 1.0)
+    var osc2Settings = OscillatorSettings(waveform: .sawtooth, detune: 20.0, level: 1.0)
+    var osc3Settings = OscillatorSettings(waveform: .sawtooth, detune: -12.0, level: 1.0)
     
     init(audioEngine: AVAudioEngine) {
         self.audioEngine = audioEngine
@@ -117,9 +117,13 @@ class OscillatorEngine {
     func updateVolumeForNote(_ note: UInt8, envelopeLevel: Float, masterVolume: Float) {
         guard let playerNodes = oscillators[note] else { return }
         
+        let finalVolume = envelopeLevel * masterVolume
         for playerNode in playerNodes {
-            playerNode.volume = envelopeLevel * masterVolume
+            playerNode.volume = finalVolume
         }
+        
+        // Debug logging (always log for now)
+        print("🔊 Note \(note): envelope=\(String(format: "%.3f", envelopeLevel)), master=\(String(format: "%.3f", masterVolume)), final=\(String(format: "%.3f", finalVolume))")
     }
     
     func updateVolumeForAllNotes(masterVolume: Float, envelopeLevelProvider: (UInt8) -> Float) {

@@ -171,14 +171,18 @@ class SynthEngine: ObservableObject {
         
         // Create envelopes for this note
         envelopeEngine.createEnvelopesForNote(note)
+        print("📊 Created envelopes for note \(note)")
         
         // Store the note info with envelope
         if let envelope = envelopeEngine.getEnvelope(for: note) {
             activeNotes[note] = (oscillators: oscillators, envelope: envelope)
+            print("✅ Envelope found for note \(note), starting timers")
             
             // Start envelope control timer for volume
             envelopeEngine.startEnvelopeTimer(for: note) { [weak self] envelopeLevel in
                 guard let self = self else { return }
+                // Debug logging
+                print("📈 Envelope update for note \(note): level=\(String(format: "%.3f", envelopeLevel))")
                 self.oscillatorEngine.updateVolumeForNote(note, envelopeLevel: envelopeLevel, masterVolume: self.volume)
             }
             
@@ -191,6 +195,7 @@ class SynthEngine: ObservableObject {
             }
         } else {
             // Fallback without envelope
+            print("⚠️ No envelope found for note \(note), using fallback")
             activeNotes[note] = (oscillators: oscillators, envelope: ADSREnvelope(settings: ADSRSettings()))
             
             // Set initial volume for all oscillators
@@ -248,10 +253,9 @@ class SynthEngine: ObservableObject {
         volume = newVolume
         mixer.outputVolume = newVolume
         
-        // Update oscillator engine volume
+        // Update volume for all active notes with their current envelope levels
         oscillatorEngine.updateVolumeForAllNotes(masterVolume: volume) { note in
-            // For now, return a fixed envelope level since we simplified the envelope system
-            return 1.0
+            return envelopeEngine.getCurrentEnvelopeLevel(for: note)
         }
     }
     

@@ -92,39 +92,54 @@ class EnvelopeEngine {
         filterEnvelopes[note] = filterEnvelope
         envelope.noteOn()
         filterEnvelope.noteOn()
+        print("🎛️ Created envelopes for note \(note): A=\(adsrSettings.attack), D=\(adsrSettings.decay), S=\(adsrSettings.sustain), R=\(adsrSettings.release)")
     }
     
     func startEnvelopeTimer(for note: UInt8, volumeUpdateCallback: @escaping (Float) -> Void) {
-        // Update envelope volume at 100Hz for smooth transitions
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] timer in
-            guard let self = self,
-                  let envelope = self.envelopes[note] else {
-                timer.invalidate()
-                self?.envelopeTimers.removeValue(forKey: note)
-                return
+        print("⏱️ Starting envelope timer for note \(note)")
+        
+        // Ensure timer is scheduled on main thread
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Update envelope volume at 100Hz for smooth transitions
+            let timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] timer in
+                guard let self = self,
+                      let envelope = self.envelopes[note] else {
+                    print("⚠️ Envelope timer stopped for note \(note) - envelope not found")
+                    timer.invalidate()
+                    self?.envelopeTimers.removeValue(forKey: note)
+                    return
+                }
+                
+                let envelopeLevel = envelope.currentLevel()
+                volumeUpdateCallback(envelopeLevel)
             }
             
-            let envelopeLevel = envelope.currentLevel()
-            volumeUpdateCallback(envelopeLevel)
+            self.envelopeTimers[note] = timer
+            print("✅ Envelope timer started for note \(note)")
         }
-        
-        envelopeTimers[note] = timer
     }
     
     func startFilterEnvelopeTimer(for note: UInt8, filterUpdateCallback: @escaping (ADSREnvelope) -> Void) {
-        // Update filter envelope at 100Hz for smooth transitions
-        let timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] timer in
-            guard let self = self,
-                  let envelope = self.filterEnvelopes[note] else {
-                timer.invalidate()
-                self?.filterEnvelopeTimers.removeValue(forKey: note)
-                return
+        // Ensure timer is scheduled on main thread
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            
+            // Update filter envelope at 100Hz for smooth transitions
+            let timer = Timer.scheduledTimer(withTimeInterval: 0.01, repeats: true) { [weak self] timer in
+                guard let self = self,
+                      let envelope = self.filterEnvelopes[note] else {
+                    timer.invalidate()
+                    self?.filterEnvelopeTimers.removeValue(forKey: note)
+                    return
+                }
+                
+                filterUpdateCallback(envelope)
             }
             
-            filterUpdateCallback(envelope)
+            self.filterEnvelopeTimers[note] = timer
         }
-        
-        filterEnvelopeTimers[note] = timer
     }
     
     func releaseNote(_ note: UInt8) {
@@ -153,6 +168,10 @@ class EnvelopeEngine {
     
     func getFilterEnvelope(for note: UInt8) -> ADSREnvelope? {
         return filterEnvelopes[note]
+    }
+    
+    func getCurrentEnvelopeLevel(for note: UInt8) -> Float {
+        return envelopes[note]?.currentLevel() ?? 0.0
     }
     
     func updateADSRSettings(_ newSettings: ADSRSettings) {
