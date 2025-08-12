@@ -113,6 +113,13 @@ class SynthEngine: ObservableObject {
             audioEngine.prepare()
             try audioEngine.start()
             
+            // Verify engine is actually running
+            if audioEngine.isRunning {
+                print("✓ Audio engine verified as running")
+            } else {
+                print("⚠️ Audio engine claims to be started but isRunning = false")
+            }
+            
             // Additional preparation: create a dummy buffer to warm up the audio path
             if let dummyFormat = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 2),
                let dummyBuffer = AVAudioPCMBuffer(pcmFormat: dummyFormat, frameCapacity: 1) {
@@ -135,7 +142,22 @@ class SynthEngine: ObservableObject {
     }
     
     func playNote(_ note: UInt8, velocity: UInt8) {
-        guard isEngineRunning else { return }
+        // Check if engine is still actually running
+        if !audioEngine.isRunning {
+            print("⚠️ Audio engine stopped unexpectedly - restarting...")
+            restartEngine()
+            return
+        }
+        
+        guard isEngineRunning else { 
+            print("❌ Cannot play note - engine not running")
+            return 
+        }
+        
+        // Stop any existing note first
+        if activeNotes[note] != nil {
+            stopNote(note)
+        }
         
         // Calculate frequency and amplitude from MIDI note and velocity
         let frequency = noteToFrequency(note: note)
@@ -147,9 +169,9 @@ class SynthEngine: ObservableObject {
         // Store the note info (simplified - no envelope for now)
         activeNotes[note] = (oscillators: oscillators, envelope: ADSREnvelope(settings: ADSRSettings()))
         
-        // Connect and start oscillators
+        // Set initial volume for all oscillators
         for oscillator in oscillators {
-            oscillator.play()
+            oscillator.volume = amplitude * volume // Apply velocity and master volume
         }
         
         print("🎵 Playing note \(note) with \(oscillators.count) oscillators")
@@ -229,6 +251,26 @@ class SynthEngine: ObservableObject {
         
         DispatchQueue.main.async {
             self.objectWillChange.send()
+        }
+    }
+    
+    func restartEngine() {
+        print("🔄 Restarting audio engine...")
+        
+        // Stop all notes first
+        stopAllNotes()
+        
+        // Stop the engine
+        audioEngine.stop()
+        
+        // Reset the engine running state
+        DispatchQueue.main.async {
+            self.isEngineRunning = false
+        }
+        
+        // Wait a moment then restart
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            self.setupAudioEngine()
         }
     }
 }

@@ -10,7 +10,7 @@ struct FilterSettings {
     var type: FilterType = .lowPass
     var cutoff: Float = 1000.0  // Hz
     var resonance: Float = 1.0     // Q factor
-    var envelopeAmount: Float = 0.0 // -1.0 to 1.0
+    var envelopeAmount: Float = 1.0 // -1.0 to 1.0
 }
 
 class FilterEngine {

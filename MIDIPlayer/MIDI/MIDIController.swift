@@ -138,8 +138,8 @@ class MIDIController: ObservableObject {
     }
     
     func restartSynthEngine() {
-        // Restart functionality not needed with the simplified engine
-        print("Synth engine restart not needed - engine auto-manages itself")
+        synthEngine.restartEngine()
+        print("🔄 Synth engine restart requested")
     }
     
     func listMIDIDestinations() {

@@ -23,9 +23,9 @@ class OscillatorEngine {
     private var oscillators: [UInt8: [AVAudioPlayerNode]] = [:]  // Array of 3 oscillators per note
     private var audioBuffers: [UInt8: [AVAudioPCMBuffer]] = [:] // Array of 3 buffers per note
     
-    var osc1Settings = OscillatorSettings(waveform: .sine, level: 1.0)
-    var osc2Settings = OscillatorSettings(waveform: .sawtooth, pitch: 12.0, level: 0.7)
-    var osc3Settings = OscillatorSettings(waveform: .square, pitch: -12.0, level: 0.5)
+    var osc1Settings = OscillatorSettings(waveform: .sawtooth, level: 1.0)
+    var osc2Settings = OscillatorSettings(waveform: .sawtooth, detune: 21.0, level: 1.0)
+    var osc3Settings = OscillatorSettings(waveform: .sawtooth, pitch: -12.0, detune: -18.0, level: 1.0,)
     
     init(audioEngine: AVAudioEngine) {
         self.audioEngine = audioEngine
@@ -61,7 +61,6 @@ class OscillatorEngine {
             
             // Create player node
             let playerNode = AVAudioPlayerNode()
-            playerNode.volume = 0.0  // Start silent, envelope will control volume
             
             // Attach and connect: Player -> Note Mixer
             audioEngine.attach(playerNode)
@@ -73,6 +72,8 @@ class OscillatorEngine {
             
             // Schedule buffer with looping
             playerNode.scheduleBuffer(buffer, at: nil, options: .loops, completionHandler: nil)
+            
+            // Start playing immediately (volume will be set by the SynthEngine)
             playerNode.play()
         }
         

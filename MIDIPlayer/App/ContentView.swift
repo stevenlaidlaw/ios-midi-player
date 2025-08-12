@@ -130,7 +130,7 @@ struct ContentView: View {
                     }
                     
                     // Three DCO Oscillator Controls
-                    HStack {
+                    VStack {
                         // OSC 1
                         OscillatorControlView(
                             title: "OSC 1",
@@ -152,8 +152,6 @@ struct ContentView: View {
                             synthEngine: midiController.synthEngine,
                             oscIndex: 1
                         )
-                        
-                        Divider()
                         
                         // OSC 3
                         OscillatorControlView(
@@ -606,35 +604,26 @@ struct OscillatorControlView: View {
     let oscIndex: Int
     
     var body: some View {
-        VStack {
+        HStack {
             // Oscillator title
-            HStack {
-                Text(title)
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.primary)
-                Spacer()
-            }
+            Text(title)
+                .font(.caption)
+                .fontWeight(.semibold)
+                .foregroundColor(.primary)
             
             // Waveform and basic controls row
-            HStack(spacing: 5) {
-                // Waveform dropdown
-                VStack(spacing: 5) {
-                    Text("WAVE")
-                        .font(.caption2)
-                        .fontWeight(.medium)
-                    
-                    Picker("Waveform", selection: $settings.waveform) {
-                        ForEach(Waveform.allCases, id: \.self) { waveform in
-                            Text(waveform.rawValue).tag(waveform)
-                        }
-                    }
-                    .pickerStyle(MenuPickerStyle())
-                    .frame(width: 80)
-                    .onChange(of: settings.waveform) { _ in
-                        synthEngine.updateOscillatorSettings(oscIndex, settings)
+            HStack {
+                Picker("Waveform", selection: $settings.waveform) {
+                    ForEach(Waveform.allCases, id: \.self) { waveform in
+                        Text(waveform.rawValue).tag(waveform)
                     }
                 }
+                .pickerStyle(MenuPickerStyle())
+                .onChange(of: settings.waveform) { _ in
+                    synthEngine.updateOscillatorSettings(oscIndex, settings)
+                }
+                
+                Spacer()
                 
                 // Level
                 CircularSlider(
@@ -652,11 +641,6 @@ struct OscillatorControlView: View {
                     formatString: "%.0f"
                 )
                 
-                Spacer()
-            }
-            
-            // Pitch and detuning controls row
-            HStack(spacing: 5) {
                 // Pitch
                 CircularSlider(
                     value: Binding(
@@ -707,10 +691,6 @@ struct OscillatorControlView: View {
                     )
                     .transition(.opacity.combined(with: .scale))
                     .animation(.easeInOut(duration: 0.2), value: settings.waveform)
-                } else {
-                    // Spacer to maintain layout
-                    Spacer()
-                        .frame(width: 47)
                 }
             }
         }

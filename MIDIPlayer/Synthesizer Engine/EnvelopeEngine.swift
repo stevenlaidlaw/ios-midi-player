@@ -2,9 +2,9 @@ import Foundation
 
 struct ADSRSettings {
     var attack: Float = 0.1    // seconds
-    var decay: Float = 0.3     // seconds
+    var decay: Float = 0.4     // seconds
     var sustain: Float = 0.7   // level (0.0 - 1.0)
-    var release: Float = 0.5   // seconds
+    var release: Float = 0.8   // seconds
 }
 
 class ADSREnvelope {
