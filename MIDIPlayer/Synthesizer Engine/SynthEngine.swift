@@ -37,6 +37,48 @@ class SynthEngine: ObservableObject {
         return oscillatorEngine.totalOscillatorCount
     }
     
+    // Expose oscillator settings for UI binding
+    var osc1Settings: OscillatorSettings {
+        get { oscillatorEngine.osc1Settings }
+        set { 
+            oscillatorEngine.osc1Settings = newValue
+            oscillatorEngine.regenerateAllOscillators()
+        }
+    }
+    
+    var osc2Settings: OscillatorSettings {
+        get { oscillatorEngine.osc2Settings }
+        set { 
+            oscillatorEngine.osc2Settings = newValue
+            oscillatorEngine.regenerateAllOscillators()
+        }
+    }
+    
+    var osc3Settings: OscillatorSettings {
+        get { oscillatorEngine.osc3Settings }
+        set { 
+            oscillatorEngine.osc3Settings = newValue
+            oscillatorEngine.regenerateAllOscillators()
+        }
+    }
+    
+    // Expose ADSR settings for UI binding
+    var adsrSettings: ADSRSettings {
+        get { envelopeEngine.adsrSettings }
+        set { envelopeEngine.updateADSRSettings(newValue) }
+    }
+    
+    var filterAdsrSettings: ADSRSettings {
+        get { envelopeEngine.filterAdsrSettings }
+        set { envelopeEngine.updateFilterADSRSettings(newValue) }
+    }
+    
+    // Expose filter settings for UI binding
+    var filterSettings: FilterSettings {
+        get { filterEngine.filterSettings }
+        set { filterEngine.updateFilterSettings(newValue) }
+    }
+    
     init() {
         audioEngine = AVAudioEngine()
         mixer = audioEngine.mainMixerNode
@@ -143,6 +185,48 @@ class SynthEngine: ObservableObject {
     
     func updateWaveform(_ newWaveform: Waveform) {
         currentWaveform = newWaveform
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
+        }
+    }
+    
+    func updateOscillatorSettings(_ oscIndex: Int, _ settings: OscillatorSettings) {
+        switch oscIndex {
+        case 0:
+            oscillatorEngine.osc1Settings = settings
+        case 1:
+            oscillatorEngine.osc2Settings = settings
+        case 2:
+            oscillatorEngine.osc3Settings = settings
+        default:
+            break
+        }
+        oscillatorEngine.regenerateAllOscillators()
+        
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
+        }
+    }
+    
+    func updateADSRSettings(_ settings: ADSRSettings) {
+        envelopeEngine.updateADSRSettings(settings)
+        
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
+        }
+    }
+    
+    func updateFilterADSRSettings(_ settings: ADSRSettings) {
+        envelopeEngine.updateFilterADSRSettings(settings)
+        
+        DispatchQueue.main.async {
+            self.objectWillChange.send()
+        }
+    }
+    
+    func updateFilterSettings(_ settings: FilterSettings) {
+        filterEngine.updateFilterSettings(settings)
+        
         DispatchQueue.main.async {
             self.objectWillChange.send()
         }

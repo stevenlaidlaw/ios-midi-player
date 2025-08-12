@@ -8,7 +8,7 @@ enum FilterType: String, CaseIterable {
 
 struct FilterSettings {
     var type: FilterType = .lowPass
-    var frequency: Float = 1000.0  // Hz
+    var cutoff: Float = 1000.0  // Hz
     var resonance: Float = 1.0     // Q factor
     var envelopeAmount: Float = 0.0 // -1.0 to 1.0
 }
@@ -52,14 +52,14 @@ class FilterEngine {
         
         let envelopeLevel = envelope.currentLevel()
         let modulatedFrequency = calculateModulatedFrequency(
-            baseFrequency: filterSettings.frequency,
+            baseFrequency: filterSettings.cutoff,
             envelopeLevel: envelopeLevel,
             envelopeAmount: filterSettings.envelopeAmount
         )
         
         // Create a temporary settings object with modulated frequency
         var modulatedSettings = filterSettings
-        modulatedSettings.frequency = modulatedFrequency
+        modulatedSettings.cutoff = modulatedFrequency
         
         updateFilterBand(filter, settings: modulatedSettings)
     }
@@ -76,7 +76,7 @@ class FilterEngine {
             band.filterType = .bandPass
         }
         
-        band.frequency = settings.frequency
+        band.frequency = settings.cutoff
         band.bandwidth = settings.resonance
         band.gain = 0 // We're using this as a filter, not EQ
         band.bypass = false

@@ -142,7 +142,10 @@ struct ContentView: View {
                         // OSC 1
                         OscillatorControlView(
                             title: "OSC 1",
-                            settings: $midiController.synthEngine.osc1Settings,
+                            settings: Binding(
+                                get: { midiController.synthEngine.osc1Settings },
+                                set: { midiController.synthEngine.osc1Settings = $0 }
+                            ),
                             synthEngine: midiController.synthEngine,
                             oscIndex: 0
                         )
@@ -152,7 +155,10 @@ struct ContentView: View {
                         // OSC 2
                         OscillatorControlView(
                             title: "OSC 2",
-                            settings: $midiController.synthEngine.osc2Settings,
+                            settings: Binding(
+                                get: { midiController.synthEngine.osc2Settings },
+                                set: { midiController.synthEngine.osc2Settings = $0 }
+                            ),
                             synthEngine: midiController.synthEngine,
                             oscIndex: 1
                         )
@@ -162,7 +168,10 @@ struct ContentView: View {
                         // OSC 3
                         OscillatorControlView(
                             title: "OSC 3",
-                            settings: $midiController.synthEngine.osc3Settings,
+                            settings: Binding(
+                                get: { midiController.synthEngine.osc3Settings },
+                                set: { midiController.synthEngine.osc3Settings = $0 }
+                            ),
                             synthEngine: midiController.synthEngine,
                             oscIndex: 2
                         )
@@ -260,18 +269,20 @@ struct ContentView: View {
                             
                             Spacer()
                             
-                            Picker("Filter Type", selection: $midiController.synthEngine.filterSettings.type) {
+                            Picker("Filter Type", selection: Binding(
+                                get: { midiController.synthEngine.filterSettings.type },
+                                set: { newType in
+                                    var newSettings = midiController.synthEngine.filterSettings
+                                    newSettings.type = newType
+                                    midiController.synthEngine.updateFilterSettings(newSettings)
+                                }
+                            )) {
                                 ForEach(FilterType.allCases, id: \.self) { filterType in
                                     Text(filterType.rawValue).tag(filterType)
                                 }
                             }
                             .pickerStyle(MenuPickerStyle())
                             .frame(width: 120)
-                            .onChange(of: midiController.synthEngine.filterSettings.type) { newType in
-                                var newSettings = midiController.synthEngine.filterSettings
-                                newSettings.type = newType
-                                midiController.synthEngine.updateFilterSettings(newSettings)
-                            }
                         }
                         
                         // Filter controls
