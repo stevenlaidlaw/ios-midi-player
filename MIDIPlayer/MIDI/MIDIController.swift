@@ -125,6 +125,26 @@ class MIDIController: ObservableObject {
         print("Note OFF: \(note) - Internal synth only")
     }
     
+    // MARK: - Chord Functions
+    
+    func playChord(notes: [UInt8]) {
+        let velocityValue = UInt8(velocity)
+        
+        for note in notes {
+            synthEngine.playNote(note, velocity: velocityValue)
+        }
+        
+        print("Chord ON: \(notes) with velocity \(velocityValue) - Internal synth only")
+    }
+    
+    func stopChord(notes: [UInt8]) {
+        for note in notes {
+            synthEngine.stopNote(note)
+        }
+        
+        print("Chord OFF: \(notes) - Internal synth only")
+    }
+    
     func sendControlChange(controller: UInt8, value: UInt8) {
         let ccStatus: UInt8 = 0xB0 | channel // Control Change + channel
         

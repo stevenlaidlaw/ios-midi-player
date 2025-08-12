@@ -1,24 +1,125 @@
 import SwiftUI
 
+// MARK: - Music Theory Structures
+
+enum Key: String, CaseIterable {
+    case c = "C"
+    case cSharp = "C#"
+    case d = "D"
+    case dSharp = "D#"
+    case e = "E"
+    case f = "F"
+    case fSharp = "F#"
+    case g = "G"
+    case gSharp = "G#"
+    case a = "A"
+    case aSharp = "A#"
+    case b = "B"
+    
+    var midiNote: UInt8 {
+        switch self {
+        case .c: return 60
+        case .cSharp: return 61
+        case .d: return 62
+        case .dSharp: return 63
+        case .e: return 64
+        case .f: return 65
+        case .fSharp: return 66
+        case .g: return 67
+        case .gSharp: return 68
+        case .a: return 69
+        case .aSharp: return 70
+        case .b: return 71
+        }
+    }
+}
+
+enum Scale: String, CaseIterable {
+    case major = "Major"
+    case minor = "Minor"
+    
+    var intervals: [Int] {
+        switch self {
+        case .major: return [0, 2, 4, 5, 7, 9, 11] // W-W-H-W-W-W-H
+        case .minor: return [0, 2, 3, 5, 7, 8, 10] // W-H-W-W-H-W-W
+        }
+    }
+    
+    var chordQualities: [ChordQuality] {
+        switch self {
+        case .major: return [.major, .minor, .minor, .major, .major, .minor, .diminished]
+        case .minor: return [.minor, .diminished, .major, .minor, .minor, .major, .major]
+        }
+    }
+    
+    var romanNumerals: [String] {
+        switch self {
+        case .major: return ["I", "ii", "iii", "IV", "V", "vi", "vii°"]
+        case .minor: return ["i", "ii°", "III", "iv", "v", "VI", "VII"]
+        }
+    }
+}
+
+enum ChordQuality {
+    case major, minor, diminished
+    
+    var intervals: [Int] {
+        switch self {
+        case .major: return [0, 4, 7]
+        case .minor: return [0, 3, 7]
+        case .diminished: return [0, 3, 6]
+        }
+    }
+}
+
+struct ChordInfo {
+    let romanNumeral: String
+    let quality: ChordQuality
+    let rootNote: UInt8
+    let notes: [UInt8]
+    let noteNames: [String]
+}
+
 struct ContentView: View {
     @StateObject private var midiController = MIDIController()
     @State private var selectedTab = 0 // 0 = MIDI Keyboard, 1 = Synth Controls
+    @State private var selectedKey: Key = .c
+    @State private var selectedScale: Scale = .major
     
-    // Define MIDI notes for a simple keyboard layout
-    let notes = [
-        (name: "C", note: 60),
-        (name: "C#", note: 61),
-        (name: "D", note: 62),
-        (name: "D#", note: 63),
-        (name: "E", note: 64),
-        (name: "F", note: 65),
-        (name: "F#", note: 66),
-        (name: "G", note: 67),
-        (name: "G#", note: 68),
-        (name: "A", note: 69),
-        (name: "A#", note: 70),
-        (name: "B", note: 71)
-    ]
+    // Generate chords based on selected key and scale
+    var chords: [ChordInfo] {
+        let rootMidi = selectedKey.midiNote
+        let scaleIntervals = selectedScale.intervals
+        let chordQualities = selectedScale.chordQualities
+        let romanNumerals = selectedScale.romanNumerals
+        
+        return (0..<7).map { degree in
+            let scaleNote = rootMidi + UInt8(scaleIntervals[degree])
+            let quality = chordQualities[degree]
+            let chordIntervals = quality.intervals
+            
+            let chordNotes = chordIntervals.map { interval in
+                scaleNote + UInt8(interval)
+            }
+            
+            let noteNames = chordNotes.map { note in
+                noteToName(note)
+            }
+            
+            return ChordInfo(
+                romanNumeral: romanNumerals[degree],
+                quality: quality,
+                rootNote: scaleNote,
+                notes: chordNotes,
+                noteNames: noteNames
+            )
+        }
+    }
+    
+    func noteToName(_ midiNote: UInt8) -> String {
+        let noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+        return noteNames[Int(midiNote) % 12]
+    }
     
     var body: some View {
         VStack(spacing: 5) {
@@ -42,7 +143,7 @@ struct ContentView: View {
             
             // Segmented Control
             Picker("View", selection: $selectedTab) {
-                Text("MIDI Keyboard").tag(0)
+                Text("Chord Keyboard").tag(0)
                 Text("Synth Controls").tag(1)
             }
             .pickerStyle(SegmentedPickerStyle())
@@ -50,16 +151,53 @@ struct ContentView: View {
             
             // Content based on selected tab
             if selectedTab == 0 {
-                // MIDI Keyboard View
-                VStack {
-                    // Piano keyboard layout
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 10) {
-                        ForEach(notes, id: \.note) { noteInfo in
-                            MIDIButton(
-                                title: noteInfo.name,
-                                note: noteInfo.note,
-                                midiController: midiController,
-                                isSharp: noteInfo.name.contains("#")
+                // Chord Keyboard View
+                VStack(spacing: 15) {
+                    // Key and Scale Selection
+                    VStack(spacing: 10) {
+                        HStack(spacing: 20) {
+                            // Key picker
+                            VStack {
+                                Text("Key")
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                
+                                Picker("Key", selection: $selectedKey) {
+                                    ForEach(Key.allCases, id: \.self) { key in
+                                        Text(key.rawValue).tag(key)
+                                    }
+                                }
+                                .pickerStyle(MenuPickerStyle())
+                                .frame(width: 100)
+                            }
+                            
+                            // Scale picker
+                            VStack {
+                                Text("Scale")
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                
+                                Picker("Scale", selection: $selectedScale) {
+                                    ForEach(Scale.allCases, id: \.self) { scale in
+                                        Text(scale.rawValue).tag(scale)
+                                    }
+                                }
+                                .pickerStyle(MenuPickerStyle())
+                                .frame(width: 100)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(Color(.systemGray5))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    
+                    // Chord buttons
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 15) {
+                        ForEach(Array(chords.enumerated()), id: \.offset) { index, chord in
+                            ChordButton(
+                                chord: chord,
+                                midiController: midiController
                             )
                         }
                     }
@@ -923,5 +1061,74 @@ struct IntegerCircularSlider: View {
             step: 1,
             formatString: "%.0f"
         )
+    }
+}
+
+// MARK: - Chord Button Component
+
+struct ChordButton: View {
+    let chord: ChordInfo
+    let midiController: MIDIController
+    @State private var isPressed = false
+    
+    var body: some View {
+        Button(action: {}) {
+            VStack(spacing: 8) {
+                // Roman numeral
+                Text(chord.romanNumeral)
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(isPressed ? .white : .primary)
+                
+                // Note names
+                VStack(spacing: 2) {
+                    Text(chord.noteNames.joined(separator: " - "))
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundColor(isPressed ? .white : .secondary)
+                        .multilineTextAlignment(.center)
+                    
+                    // Chord quality indicator
+                    Text(chordQualityText(chord.quality))
+                        .font(.caption2)
+                        .foregroundColor(isPressed ? .white : .secondary)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 80)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(isPressed ? Color.blue : Color(.systemGray5))
+                    .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+            )
+            .scaleEffect(isPressed ? 0.95 : 1.0)
+            .animation(.easeInOut(duration: 0.1), value: isPressed)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    if !isPressed {
+                        isPressed = true
+                        midiController.playChord(notes: chord.notes)
+                        
+                        // Haptic feedback
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.impactOccurred()
+                    }
+                }
+                .onEnded { _ in
+                    isPressed = false
+                    midiController.stopChord(notes: chord.notes)
+                }
+        )
+    }
+    
+    private func chordQualityText(_ quality: ChordQuality) -> String {
+        switch quality {
+        case .major: return "Major"
+        case .minor: return "minor"
+        case .diminished: return "diminished"
+        }
     }
 }
