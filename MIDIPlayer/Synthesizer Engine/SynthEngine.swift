@@ -13,7 +13,7 @@ enum Waveform: String, CaseIterable {
 }
 
 struct OscillatorSettings {
-    var waveform: Waveform = .sine
+    var waveform: Waveform = .sawtooth
     var pitch: Float = 0.0        // -24 to +24 semitones
     var detune: Float = 0.0       // -100 to +100 cents (fractions of semitone)
     var level: Float = 1.0        // 0.0 to 1.0
@@ -126,10 +126,10 @@ class SynthEngine: ObservableObject {
     @Published var volume: Float = 0.5
     
     // Oscillator settings
-    var osc1Settings = OscillatorSettings(waveform: .sine, level: 1.0)
-    var osc2Settings = OscillatorSettings(waveform: .sawtooth, pitch: 12.0, level: 0.0)
-    var osc3Settings = OscillatorSettings(waveform: .sawtooth, pitch: -12.0, level: 0.0)
-    
+    var osc1Settings = OscillatorSettings()
+    var osc2Settings = OscillatorSettings(detune: 22.0)
+    var osc3Settings = OscillatorSettings(detune: -12.0)
+
     // ADSR settings
     var adsrSettings = ADSRSettings()
     var filterAdsrSettings = ADSRSettings(attack: 0.1, decay: 0.3, sustain: 0.7, release: 0.5)
