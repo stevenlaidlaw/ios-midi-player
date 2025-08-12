@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var midiController = MIDIController()
+    @State private var selectedTab = 0 // 0 = MIDI Keyboard, 1 = Synth Controls
     
     // Define MIDI notes for a simple keyboard layout
     let notes = [
@@ -39,387 +40,428 @@ struct ContentView: View {
             }
             .padding()
             
-            // Piano keyboard layout
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 10) {
-                ForEach(notes, id: \.note) { noteInfo in
-                    MIDIButton(
-                        title: noteInfo.name,
-                        note: noteInfo.note,
-                        midiController: midiController,
-                        isSharp: noteInfo.name.contains("#")
-                    )
-                }
+            // Segmented Control
+            Picker("View", selection: $selectedTab) {
+                Text("MIDI Keyboard").tag(0)
+                Text("Synth Controls").tag(1)
             }
+            .pickerStyle(SegmentedPickerStyle())
             .padding(.horizontal)
             
-            Spacer()
-            
-            // Control panel
-            VStack(spacing: 5) {
-                // MIDI Controls
-                VStack(spacing: 5) {
-                    Text("MIDI CONTROLS")
-                        .font(.caption)
-                        .fontWeight(.bold)
-                        .foregroundColor(.secondary)
-                    
-                    HStack(spacing: 5) {
-                        // Velocity knob
-                        IntegerCircularSlider(
-                            value: Binding(
-                                get: { Double(midiController.velocity) },
-                                set: { midiController.velocity = ($0) }
-                            ),
-                            range: 1...127,
-                            label: "VELOCITY",
-                            unit: ""
-                        )
-                        
-                        Spacer()
-                        
-                        // MIDI Channel picker
-                        VStack(spacing: 5) {
-                            Text("MIDI\nCHANNEL")
-                                .font(.caption2)
-                                .fontWeight(.medium)
-                                .multilineTextAlignment(.center)
-                                .frame(height: 20)
-                            
-                            Picker("MIDI Channel", selection: $midiController.channel) {
-                                ForEach(1...16, id: \.self) { channel in
-                                    Text("\(channel)").tag(UInt8(channel - 1))
-                                }
-                            }
-                            .pickerStyle(MenuPickerStyle())
-                            .frame(width: 60)
-                        }
-                        
-                        Spacer()
-                        
-                        // Volume knob
-                        CircularSlider(
-                            value: Binding(
-                                get: { Double(midiController.synthEngine.volume * 100) },
-                                set: { midiController.synthEngine.setVolume(Float($0 / 100.0)) }
-                            ),
-                            range: 0...100,
-                            label: "VOLUME",
-                            unit: "%",
-                            step: 1,
-                            formatString: "%.0f"
-                        )
-                    }
-                }
-                
-                Divider()
-                
-                // Synthesizer Controls
-                VStack(spacing: 5) {
-                    HStack {
-                        Text("Internal Synthesizer")
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                        
-                        Spacer()
-                        
-                        if midiController.synthEngine.activeNoteCount > 0 {
-                            Text("\(midiController.synthEngine.activeNoteCount) notes (\(midiController.synthEngine.totalOscillatorCount) oscillators)")
-                                .font(.caption)
-                                .foregroundColor(.blue)
+            // Content based on selected tab
+            if selectedTab == 0 {
+                // MIDI Keyboard View
+                VStack {
+                    // Piano keyboard layout
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 10) {
+                        ForEach(notes, id: \.note) { noteInfo in
+                            MIDIButton(
+                                title: noteInfo.name,
+                                note: noteInfo.note,
+                                midiController: midiController,
+                                isSharp: noteInfo.name.contains("#")
+                            )
                         }
                     }
+                    .padding(.horizontal)
                     
-                    // Three DCO Oscillator Controls
-                    VStack {
-                        // OSC 1
-                        OscillatorControlView(
-                            title: "OSC 1",
-                            settings: Binding(
-                                get: { midiController.synthEngine.osc1Settings },
-                                set: { midiController.synthEngine.osc1Settings = $0 }
-                            ),
-                            synthEngine: midiController.synthEngine,
-                            oscIndex: 0
-                        )
-                        
-                        // OSC 2
-                        OscillatorControlView(
-                            title: "OSC 2",
-                            settings: Binding(
-                                get: { midiController.synthEngine.osc2Settings },
-                                set: { midiController.synthEngine.osc2Settings = $0 }
-                            ),
-                            synthEngine: midiController.synthEngine,
-                            oscIndex: 1
-                        )
-                        
-                        // OSC 3
-                        OscillatorControlView(
-                            title: "OSC 3",
-                            settings: Binding(
-                                get: { midiController.synthEngine.osc3Settings },
-                                set: { midiController.synthEngine.osc3Settings = $0 }
-                            ),
-                            synthEngine: midiController.synthEngine,
-                            oscIndex: 2
-                        )
-                    }
+                    Spacer()
                     
-                    Divider()
-                    
-                    // ADSR Controls - Hardware Synth Style Layout
-                    VStack(spacing: 2) {
-                        Text("AMP ENVELOPE")
+                    // Basic MIDI Controls
+                    VStack(spacing: 10) {
+                        Text("MIDI CONTROLS")
                             .font(.caption)
                             .fontWeight(.bold)
                             .foregroundColor(.secondary)
                         
-                        // ADSR knobs in a row like hardware synths
-                        HStack(spacing: 15) {
-                            TimeCircularSlider(
+                        HStack(spacing: 20) {
+                            // Velocity knob
+                            IntegerCircularSlider(
                                 value: Binding(
-                                    get: { Double(midiController.synthEngine.adsrSettings.attack) },
-                                    set: { newValue in
-                                        var settings = midiController.synthEngine.adsrSettings
-                                        settings.attack = Float(newValue)
-                                        midiController.synthEngine.updateADSRSettings(settings)
-                                    }
+                                    get: { Double(midiController.velocity) },
+                                    set: { midiController.velocity = ($0) }
                                 ),
-                                label: "ATTACK",
-                                maxTime: 2.0
+                                range: 1...127,
+                                label: "VELOCITY",
+                                unit: ""
                             )
                             
-                            TimeCircularSlider(
-                                value: Binding(
-                                    get: { Double(midiController.synthEngine.adsrSettings.decay) },
-                                    set: { newValue in
-                                        var settings = midiController.synthEngine.adsrSettings
-                                        settings.decay = Float(newValue)
-                                        midiController.synthEngine.updateADSRSettings(settings)
-                                    }
-                                ),
-                                label: "DECAY",
-                                maxTime: 2.0
-                            )
-                            
+                            // Volume knob
                             CircularSlider(
                                 value: Binding(
-                                    get: { Double(midiController.synthEngine.adsrSettings.sustain) * 100 },
-                                    set: { newValue in
-                                        var settings = midiController.synthEngine.adsrSettings
-                                        settings.sustain = Float(newValue / 100.0)
-                                        midiController.synthEngine.updateADSRSettings(settings)
-                                    }
+                                    get: { Double(midiController.synthEngine.volume * 100) },
+                                    set: { midiController.synthEngine.setVolume(Float($0 / 100.0)) }
                                 ),
                                 range: 0...100,
-                                label: "SUSTAIN",
+                                label: "VOLUME",
                                 unit: "%",
                                 step: 1,
                                 formatString: "%.0f"
                             )
                             
-                            TimeCircularSlider(
-                                value: Binding(
-                                    get: { Double(midiController.synthEngine.adsrSettings.release) },
-                                    set: { newValue in
-                                        var settings = midiController.synthEngine.adsrSettings
-                                        settings.release = Float(newValue)
-                                        midiController.synthEngine.updateADSRSettings(settings)
-                                    }
-                                ),
-                                label: "RELEASE",
-                                maxTime: 3.0
-                            )
-                        }
-                        .padding(.horizontal)
-                    }
-                    
-                    HStack(spacing: 5) {
-                        // Filter Section
-                        VStack(spacing: 5) {
-                            Text("FILTER")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.secondary)
-                            
-                            // Filter type dropdown
-                            HStack {
-                                Text("FILTER TYPE:")
+                            // Voice count display
+                            VStack {
+                                Text("VOICES")
                                     .font(.caption2)
                                     .fontWeight(.medium)
+                                    .foregroundColor(.primary)
                                 
-                                Spacer()
-                                
-                                Picker("Filter Type", selection: Binding(
-                                    get: { midiController.synthEngine.filterSettings.type },
-                                    set: { newType in
-                                        var newSettings = midiController.synthEngine.filterSettings
-                                        newSettings.type = newType
-                                        midiController.synthEngine.updateFilterSettings(newSettings)
-                                    }
-                                )) {
-                                    ForEach(FilterType.allCases, id: \.self) { filterType in
-                                        Text(filterType.rawValue).tag(filterType)
-                                    }
-                                }
-                                .pickerStyle(MenuPickerStyle())
-                                .frame(width: 120)
-                            }
-                            
-                            // Filter controls
-                            HStack(spacing: 5) {
-                                CircularSlider(
-                                    value: Binding(
-                                        get: { Double(midiController.synthEngine.filterSettings.cutoff) },
-                                        set: { newValue in
-                                            var settings = midiController.synthEngine.filterSettings
-                                            settings.cutoff = Float(newValue)
-                                            midiController.synthEngine.updateFilterSettings(settings)
-                                        }
-                                    ),
-                                    range: 20...20000,
-                                    label: "CUTOFF",
-                                    unit: "Hz",
-                                    step: 10,
-                                    formatString: "%.0f"
-                                )
-                                
-                                CircularSlider(
-                                    value: Binding(
-                                        get: { Double(midiController.synthEngine.filterSettings.resonance) },
-                                        set: { newValue in
-                                            var settings = midiController.synthEngine.filterSettings
-                                            settings.resonance = Float(newValue)
-                                            midiController.synthEngine.updateFilterSettings(settings)
-                                        }
-                                    ),
-                                    range: 0.1...10.0,
-                                    label: "RES",
-                                    unit: "",
-                                    step: 0.1,
-                                    formatString: "%.1f"
-                                )
-                                
-                                CircularSlider(
-                                    value: Binding(
-                                        get: { Double(midiController.synthEngine.filterSettings.envelopeAmount * 100) },
-                                        set: { newValue in
-                                            var settings = midiController.synthEngine.filterSettings
-                                            settings.envelopeAmount = Float(newValue / 100.0)
-                                            midiController.synthEngine.updateFilterSettings(settings)
-                                        }
-                                    ),
-                                    range: -100...100,
-                                    label: "ENV\nAMT",
-                                    unit: "%",
-                                    step: 1,
-                                    formatString: "%.0f"
-                                )
-                            }
-                            .padding(.horizontal)
-                        }
-                        
-                        Divider()
-                        
-                        // Filter ADSR Controls
-                        VStack(spacing: 5) {
-                            HStack {
-                                Text("FILTER ENVELOPE")
-                                    .font(.caption)
+                                Text("\(midiController.synthEngine.activeNoteCount)")
+                                    .font(.title2)
                                     .fontWeight(.bold)
+                                    .foregroundColor(.blue)
+                                    .frame(width: 40, height: 40)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(20)
+                                
+                                Text("/ 6")
+                                    .font(.caption2)
                                     .foregroundColor(.secondary)
-                                Spacer()
                             }
-                            
-                            // Filter ADSR knobs in a row
-                            HStack(spacing: 5) {
-                                TimeCircularSlider(
-                                    value: Binding(
-                                        get: { Double(midiController.synthEngine.filterAdsrSettings.attack) },
-                                        set: { newValue in
-                                            var settings = midiController.synthEngine.filterAdsrSettings
-                                            settings.attack = Float(newValue)
-                                            midiController.synthEngine.updateFilterADSRSettings(settings)
-                                        }
-                                    ),
-                                    label: "ATTACK",
-                                    maxTime: 2.0
-                                )
-                                
-                                TimeCircularSlider(
-                                    value: Binding(
-                                        get: { Double(midiController.synthEngine.filterAdsrSettings.decay) },
-                                        set: { newValue in
-                                            var settings = midiController.synthEngine.filterAdsrSettings
-                                            settings.decay = Float(newValue)
-                                            midiController.synthEngine.updateFilterADSRSettings(settings)
-                                        }
-                                    ),
-                                    label: "DECAY",
-                                    maxTime: 2.0
-                                )
-                                
-                                CircularSlider(
-                                    value: Binding(
-                                        get: { Double(midiController.synthEngine.filterAdsrSettings.sustain) * 100 },
-                                        set: { newValue in
-                                            var settings = midiController.synthEngine.filterAdsrSettings
-                                            settings.sustain = Float(newValue / 100.0)
-                                            midiController.synthEngine.updateFilterADSRSettings(settings)
-                                        }
-                                    ),
-                                    range: 0...100,
-                                    label: "SUSTAIN",
-                                    unit: "%",
-                                    step: 1,
-                                    formatString: "%.0f"
-                                )
-                                
-                                TimeCircularSlider(
-                                    value: Binding(
-                                        get: { Double(midiController.synthEngine.filterAdsrSettings.release) },
-                                        set: { newValue in
-                                            var settings = midiController.synthEngine.filterAdsrSettings
-                                            settings.release = Float(newValue)
-                                            midiController.synthEngine.updateFilterADSRSettings(settings)
-                                        }
-                                    ),
-                                    label: "RELEASE",
-                                    maxTime: 3.0
-                                )
-                            }
-                            .padding(.horizontal)
                         }
-                    }
-                    
-                    Button("PANIC - Stop All Sound") {
-                        midiController.panic()
                         
-                        // Haptic feedback for panic button
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
-                        impactFeedback.impactOccurred()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .foregroundColor(.white)
-                    .background(Color.red)
-                    .font(.headline)
-                    
-                    // Restart synth engine button (for debugging)
-                    if !midiController.synthEngine.isEngineRunning {
-                        Button("Restart Synth Engine") {
-                            midiController.restartSynthEngine()
+                        // PANIC button
+                        Button("PANIC - Stop All Sound") {
+                            midiController.panic()
+                            
+                            // Haptic feedback for panic button
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+                            impactFeedback.impactOccurred()
                         }
-                        .buttonStyle(.bordered)
-                        .foregroundColor(.orange)
-                        .font(.caption)
+                        .buttonStyle(.borderedProminent)
+                        .foregroundColor(.white)
+                        .background(Color.red)
+                        .font(.headline)
                     }
+                    .padding()
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    .padding(.bottom)
+                }
+            } else {
+                // Synth Controls View
+                ScrollView {
+                    synthControlsView
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(10)
+                        .padding(.horizontal)
+                        .padding(.bottom)
+                }
+            }
+        }
+        .onAppear {
+            midiController.setupMIDI()
+        }
+    }
+    
+    // MARK: - Synth Controls View
+    
+    private var synthControlsView: some View {
+        VStack(spacing: 10) {
+            HStack {
+                Text("Internal Synthesizer")
+                    .font(.headline)
+                    .foregroundColor(.primary)
+                
+                Spacer()
+                
+                if midiController.synthEngine.activeNoteCount > 0 {
+                    Text("\(midiController.synthEngine.activeNoteCount) notes (\(midiController.synthEngine.totalOscillatorCount) oscillators)")
+                        .font(.caption)
+                        .foregroundColor(.blue)
+                }
+            }
+            
+            // Three DCO Oscillator Controls
+            VStack {
+                // OSC 1
+                OscillatorControlView(
+                    title: "OSC 1",
+                    settings: Binding(
+                        get: { midiController.synthEngine.osc1Settings },
+                        set: { midiController.synthEngine.osc1Settings = $0 }
+                    ),
+                    synthEngine: midiController.synthEngine,
+                    oscIndex: 0
+                )
+                
+                // OSC 2
+                OscillatorControlView(
+                    title: "OSC 2",
+                    settings: Binding(
+                        get: { midiController.synthEngine.osc2Settings },
+                        set: { midiController.synthEngine.osc2Settings = $0 }
+                    ),
+                    synthEngine: midiController.synthEngine,
+                    oscIndex: 1
+                )
+                
+                // OSC 3
+                OscillatorControlView(
+                    title: "OSC 3",
+                    settings: Binding(
+                        get: { midiController.synthEngine.osc3Settings },
+                        set: { midiController.synthEngine.osc3Settings = $0 }
+                    ),
+                    synthEngine: midiController.synthEngine,
+                    oscIndex: 2
+                )
+            }
+            
+            Divider()
+            
+            // ADSR Controls - Hardware Synth Style Layout
+            VStack(spacing: 5) {
+                Text("AMP ENVELOPE")
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundColor(.secondary)
+                
+                // ADSR knobs in a row like hardware synths
+                HStack(spacing: 15) {
+                    TimeCircularSlider(
+                        value: Binding(
+                            get: { Double(midiController.synthEngine.adsrSettings.attack) },
+                            set: { newValue in
+                                var settings = midiController.synthEngine.adsrSettings
+                                settings.attack = Float(newValue)
+                                midiController.synthEngine.updateADSRSettings(settings)
+                            }
+                        ),
+                        label: "ATTACK",
+                        maxTime: 2.0
+                    )
+                    
+                    TimeCircularSlider(
+                        value: Binding(
+                            get: { Double(midiController.synthEngine.adsrSettings.decay) },
+                            set: { newValue in
+                                var settings = midiController.synthEngine.adsrSettings
+                                settings.decay = Float(newValue)
+                                midiController.synthEngine.updateADSRSettings(settings)
+                            }
+                        ),
+                        label: "DECAY",
+                        maxTime: 2.0
+                    )
+                    
+                    CircularSlider(
+                        value: Binding(
+                            get: { Double(midiController.synthEngine.adsrSettings.sustain) * 100 },
+                            set: { newValue in
+                                var settings = midiController.synthEngine.adsrSettings
+                                settings.sustain = Float(newValue / 100.0)
+                                midiController.synthEngine.updateADSRSettings(settings)
+                            }
+                        ),
+                        range: 0...100,
+                        label: "SUSTAIN",
+                        unit: "%",
+                        step: 1,
+                        formatString: "%.0f"
+                    )
+                    
+                    TimeCircularSlider(
+                        value: Binding(
+                            get: { Double(midiController.synthEngine.adsrSettings.release) },
+                            set: { newValue in
+                                var settings = midiController.synthEngine.adsrSettings
+                                settings.release = Float(newValue)
+                                midiController.synthEngine.updateADSRSettings(settings)
+                            }
+                        ),
+                        label: "RELEASE",
+                        maxTime: 3.0
+                    )
+                }
+                .padding(.horizontal)
+            }
+            
+            HStack(spacing: 10) {
+                // Filter Section
+                VStack(spacing: 5) {
+                    Text("FILTER")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    
+                    // Filter type dropdown
+                    HStack {
+                        Text("TYPE:")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                        
+                        Spacer()
+                        
+                        Picker("Filter Type", selection: Binding(
+                            get: { midiController.synthEngine.filterSettings.type },
+                            set: { newType in
+                                var newSettings = midiController.synthEngine.filterSettings
+                                newSettings.type = newType
+                                midiController.synthEngine.updateFilterSettings(newSettings)
+                            }
+                        )) {
+                            ForEach(FilterType.allCases, id: \.self) { filterType in
+                                Text(filterType.rawValue).tag(filterType)
+                            }
+                        }
+                        .pickerStyle(MenuPickerStyle())
+                        .frame(width: 120)
+                    }
+                    
+                    // Filter controls
+                    HStack(spacing: 5) {
+                        CircularSlider(
+                            value: Binding(
+                                get: { Double(midiController.synthEngine.filterSettings.cutoff) },
+                                set: { newValue in
+                                    var settings = midiController.synthEngine.filterSettings
+                                    settings.cutoff = Float(newValue)
+                                    midiController.synthEngine.updateFilterSettings(settings)
+                                }
+                            ),
+                            range: 20...20000,
+                            label: "CUTOFF",
+                            unit: "Hz",
+                            step: 10,
+                            formatString: "%.0f"
+                        )
+                        
+                        CircularSlider(
+                            value: Binding(
+                                get: { Double(midiController.synthEngine.filterSettings.resonance) },
+                                set: { newValue in
+                                    var settings = midiController.synthEngine.filterSettings
+                                    settings.resonance = Float(newValue)
+                                    midiController.synthEngine.updateFilterSettings(settings)
+                                }
+                            ),
+                            range: 0.1...10.0,
+                            label: "RES",
+                            unit: "",
+                            step: 0.1,
+                            formatString: "%.1f"
+                        )
+                        
+                        CircularSlider(
+                            value: Binding(
+                                get: { Double(midiController.synthEngine.filterSettings.envelopeAmount * 100) },
+                                set: { newValue in
+                                    var settings = midiController.synthEngine.filterSettings
+                                    settings.envelopeAmount = Float(newValue / 100.0)
+                                    midiController.synthEngine.updateFilterSettings(settings)
+                                }
+                            ),
+                            range: -100...100,
+                            label: "ENV\nAMT",
+                            unit: "%",
+                            step: 1,
+                            formatString: "%.0f"
+                        )
+                    }
+                    .padding(.horizontal)
                 }
                 
                 Divider()
                 
+                // Filter ADSR Controls
+                VStack(spacing: 5) {
+                    Text("FILTER ENVELOPE")
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundColor(.secondary)
+                    
+                    // Filter ADSR knobs in a row
+                    HStack(spacing: 5) {
+                        TimeCircularSlider(
+                            value: Binding(
+                                get: { Double(midiController.synthEngine.filterAdsrSettings.attack) },
+                                set: { newValue in
+                                    var settings = midiController.synthEngine.filterAdsrSettings
+                                    settings.attack = Float(newValue)
+                                    midiController.synthEngine.updateFilterADSRSettings(settings)
+                                }
+                            ),
+                            label: "ATTACK",
+                            maxTime: 2.0
+                        )
+                        
+                        TimeCircularSlider(
+                            value: Binding(
+                                get: { Double(midiController.synthEngine.filterAdsrSettings.decay) },
+                                set: { newValue in
+                                    var settings = midiController.synthEngine.filterAdsrSettings
+                                    settings.decay = Float(newValue)
+                                    midiController.synthEngine.updateFilterADSRSettings(settings)
+                                }
+                            ),
+                            label: "DECAY",
+                            maxTime: 2.0
+                        )
+                        
+                        CircularSlider(
+                            value: Binding(
+                                get: { Double(midiController.synthEngine.filterAdsrSettings.sustain) * 100 },
+                                set: { newValue in
+                                    var settings = midiController.synthEngine.filterAdsrSettings
+                                    settings.sustain = Float(newValue / 100.0)
+                                    midiController.synthEngine.updateFilterADSRSettings(settings)
+                                }
+                            ),
+                            range: 0...100,
+                            label: "SUSTAIN",
+                            unit: "%",
+                            step: 1,
+                            formatString: "%.0f"
+                        )
+                        
+                        TimeCircularSlider(
+                            value: Binding(
+                                get: { Double(midiController.synthEngine.filterAdsrSettings.release) },
+                                set: { newValue in
+                                    var settings = midiController.synthEngine.filterAdsrSettings
+                                    settings.release = Float(newValue)
+                                    midiController.synthEngine.updateFilterADSRSettings(settings)
+                                }
+                            ),
+                            label: "RELEASE",
+                            maxTime: 3.0
+                        )
+                    }
+                    .padding(.horizontal)
+                }
+            }
+            
+            // PANIC button and engine status
+            VStack(spacing: 10) {
+                Button("PANIC - Stop All Sound") {
+                    midiController.panic()
+                    
+                    // Haptic feedback for panic button
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
+                    impactFeedback.impactOccurred()
+                }
+                .buttonStyle(.borderedProminent)
+                .foregroundColor(.white)
+                .background(Color.red)
+                .font(.headline)
+                
+                // Restart synth engine button (for debugging)
+                if !midiController.synthEngine.isEngineRunning {
+                    Button("Restart Synth Engine") {
+                        midiController.restartSynthEngine()
+                    }
+                    .buttonStyle(.bordered)
+                    .foregroundColor(.orange)
+                    .font(.caption)
+                }
+                
                 Text("Playing internal synthesizer only (MIDI broadcasting disabled for low latency)")
                     .font(.caption)
                     .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
                 
                 // Debug buttons
                 HStack {
@@ -438,14 +480,6 @@ struct ContentView: View {
                     .font(.caption)
                 }
             }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(10)
-            .padding(.horizontal)
-            .padding(.bottom)
-        }
-        .onAppear {
-            midiController.setupMIDI()
         }
     }
 }
