@@ -297,10 +297,30 @@ class SynthEngine: ObservableObject {
     }
     
     func stopAllNotes() {
-        for note in Array(activeNotes.keys) {
-            removeNote(note)
+        print("🛑 PANIC - Stopping all notes immediately")
+        
+        // Force stop all notes immediately without release
+        for (note, noteInfo) in activeNotes {
+            // Stop timers immediately
+            envelopeTimers[note]?.invalidate()
+            
+            // Set volume to 0 immediately
+            for oscillator in noteInfo.oscillators {
+                oscillator.volume = 0.0
+                oscillator.stop()
+                audioEngine.detach(oscillator)
+            }
+            
+            // Detach mixer and filter
+            audioEngine.detach(noteInfo.noteMixer)
+            audioEngine.detach(noteInfo.filter)
         }
-        print("🛑 Stopped all notes")
+        
+        // Clear all data
+        envelopeTimers.removeAll()
+        activeNotes.removeAll()
+        
+        print("🛑 All notes stopped and cleared")
     }
     
     // MARK: - Envelope Management
