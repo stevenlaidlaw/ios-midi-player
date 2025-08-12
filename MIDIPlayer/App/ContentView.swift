@@ -249,15 +249,7 @@ struct ContentView: View {
                     // Chord buttons in three rows (three octaves)
                     VStack(spacing: 8) {
                         // High octave label and buttons (row 3)
-                        VStack(spacing: 4) {
-                            HStack {
-                                Text("HIGH OCTAVE")
-                                    .font(.caption2)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                            }
-                            
+                        VStack(spacing: 5) {
                             HStack(spacing: 5) {
                                 ForEach(Array(chords[14..<21].enumerated()), id: \.offset) { index, chord in
                                     ChordButton(
@@ -268,21 +260,9 @@ struct ContentView: View {
                                         isFirstInversion: isFirstInversionPressed,
                                         isSecondInversion: isSecondInversionPressed
                                     )
-                                    .frame(height: 70) // Slightly smaller for three rows
+                                    .frame(width: 90, height: 90)
                                 }
                             }
-                        }
-                        
-                        // Middle octave label and buttons (row 2)
-                        VStack(spacing: 4) {
-                            HStack {
-                                Text("MIDDLE OCTAVE")
-                                    .font(.caption2)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                            }
-                            
                             HStack(spacing: 5) {
                                 ForEach(Array(chords[7..<14].enumerated()), id: \.offset) { index, chord in
                                     ChordButton(
@@ -293,21 +273,9 @@ struct ContentView: View {
                                         isFirstInversion: isFirstInversionPressed,
                                         isSecondInversion: isSecondInversionPressed
                                     )
-                                    .frame(height: 70) // Slightly smaller for three rows
+                                    .frame(width: 90, height: 90)
                                 }
                             }
-                        }
-                        
-                        // Low octave label and buttons (row 1)
-                        VStack(spacing: 4) {
-                            HStack {
-                                Text("LOW OCTAVE")
-                                    .font(.caption2)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.secondary)
-                                Spacer()
-                            }
-                            
                             HStack(spacing: 5) {
                                 ForEach(Array(chords[0..<7].enumerated()), id: \.offset) { index, chord in
                                     ChordButton(
@@ -318,56 +286,55 @@ struct ContentView: View {
                                         isFirstInversion: isFirstInversionPressed,
                                         isSecondInversion: isSecondInversionPressed
                                     )
-                                    .frame(height: 70) // Slightly smaller for three rows
+                                    .frame(width: 90, height: 90)
                                 }
                             }
+
+
+                            HStack(spacing: 5) {
+                                // 7th button
+                                ExtensionButton(
+                                    title: "7th",
+                                    isPressed: $is7thPressed
+                                )
+                                .frame(width: 90, height: 90)
+                                
+                                // 9th button  
+                                ExtensionButton(
+                                    title: "9th",
+                                    isPressed: $is9thPressed
+                                )
+                                .frame(width: 90, height: 90)
+                                
+                                // First inversion button
+                                ExtensionButton(
+                                    title: "1st",
+                                    isPressed: $isFirstInversionPressed,
+                                    onPress: {
+                                        // If activating first inversion, deactivate second inversion
+                                        if !isFirstInversionPressed {
+                                            isSecondInversionPressed = false
+                                        }
+                                    },
+                                    color: .purple
+                                )
+                                .frame(width: 90, height: 90)
+                                
+                                // Second inversion button
+                                ExtensionButton(
+                                    title: "2nd",
+                                    isPressed: $isSecondInversionPressed,
+                                    onPress: {
+                                        // If activating second inversion, deactivate first inversion
+                                        if !isSecondInversionPressed {
+                                            isFirstInversionPressed = false
+                                        }
+                                    },
+                                    color: .purple
+                                )
+                                .frame(width: 90, height: 90)
+                            }
                         }
-                    }
-                    .padding(.horizontal)
-                    
-                    // Extension buttons row
-                    HStack(spacing: 15) {
-                        // 7th button
-                        ExtensionButton(
-                            title: "7th",
-                            isPressed: $is7thPressed
-                        )
-                        .frame(width: 80)
-                        
-                        // 9th button  
-                        ExtensionButton(
-                            title: "9th",
-                            isPressed: $is9thPressed
-                        )
-                        .frame(width: 80)
-                        
-                        // First inversion button
-                        ExtensionButton(
-                            title: "1st",
-                            isPressed: $isFirstInversionPressed,
-                            onPress: {
-                                // If activating first inversion, deactivate second inversion
-                                if !isFirstInversionPressed {
-                                    isSecondInversionPressed = false
-                                }
-                            },
-                            color: .purple
-                        )
-                        .frame(width: 80)
-                        
-                        // Second inversion button
-                        ExtensionButton(
-                            title: "2nd",
-                            isPressed: $isSecondInversionPressed,
-                            onPress: {
-                                // If activating second inversion, deactivate first inversion
-                                if !isSecondInversionPressed {
-                                    isFirstInversionPressed = false
-                                }
-                            },
-                            color: .purple
-                        )
-                        .frame(width: 80)
                     }
                     .padding(.horizontal)
                     
@@ -1267,7 +1234,7 @@ struct ChordButton: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 70) // Use minHeight instead of fixed height
+            .frame(minHeight: 80) // Use minHeight instead of fixed height
             .background(
                 RoundedRectangle(cornerRadius: 5)
                     .fill(isPressed ? Color.blue : Color(.systemGray5))
@@ -1341,7 +1308,7 @@ struct ExtensionButton: View {
                 .fontWeight(.bold)
                 .foregroundColor(isPressed ? .white : .primary)
                 .frame(maxWidth: .infinity)
-                .frame(height: 70) // Match chord button height
+                .frame(height: 80) // Match chord button height
                 .background(
                     RoundedRectangle(cornerRadius: 5)
                         .fill(isPressed ? color : Color(.systemGray5))
