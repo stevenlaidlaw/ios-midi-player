@@ -18,19 +18,24 @@ enum Key: String, CaseIterable {
     
     var midiNote: UInt8 {
         switch self {
-        case .c: return 60
-        case .cSharp: return 61
-        case .d: return 62
-        case .dSharp: return 63
-        case .e: return 64
-        case .f: return 65
-        case .fSharp: return 66
-        case .g: return 67
-        case .gSharp: return 68
-        case .a: return 69
-        case .aSharp: return 70
-        case .b: return 71
+        case .c: return 48  // C3 (low octave)
+        case .cSharp: return 49
+        case .d: return 50
+        case .dSharp: return 51
+        case .e: return 52
+        case .f: return 53
+        case .fSharp: return 54
+        case .g: return 55
+        case .gSharp: return 56
+        case .a: return 57
+        case .aSharp: return 58
+        case .b: return 59
         }
+    }
+    
+    // Get MIDI note for specific octave (0 = low, 1 = middle, 2 = high)
+    func midiNote(octave: Int) -> UInt8 {
+        return midiNote + UInt8(octave * 12)
     }
 }
 
@@ -85,35 +90,88 @@ struct ContentView: View {
     @State private var selectedTab = 0 // 0 = MIDI Keyboard, 1 = Synth Controls
     @State private var selectedKey: Key = .c
     @State private var selectedScale: Scale = .major
+    @State private var is7thPressed = false
+    @State private var is9thPressed = false
+    @State private var isFirstInversionPressed = false
+    @State private var isSecondInversionPressed = false
     
-    // Generate chords based on selected key and scale
+    // Generate chords based on selected key and scale across three octaves
     var chords: [ChordInfo] {
-        let rootMidi = selectedKey.midiNote
         let scaleIntervals = selectedScale.intervals
         let chordQualities = selectedScale.chordQualities
         let romanNumerals = selectedScale.romanNumerals
         
-        return (0..<7).map { degree in
-            let scaleNote = rootMidi + UInt8(scaleIntervals[degree])
-            let quality = chordQualities[degree]
-            let chordIntervals = quality.intervals
+        var allChords: [ChordInfo] = []
+        
+        // Generate chords for three octaves (low, middle, high)
+        for octave in 0..<3 {
+            let rootMidi = selectedKey.midiNote(octave: octave)
             
-            let chordNotes = chordIntervals.map { interval in
-                scaleNote + UInt8(interval)
+            let octaveChords = (0..<7).map { degree in
+                let scaleNote = rootMidi + UInt8(scaleIntervals[degree])
+                let quality = chordQualities[degree]
+                var chordIntervals = quality.intervals
+                
+                // Add 7th if selected
+                if is7thPressed {
+                    let seventhInterval: Int
+                    switch quality {
+                    case .major:
+                        // Major 7th for major chords (11 semitones)
+                        seventhInterval = 11
+                    case .minor:
+                        // Minor 7th for minor chords (10 semitones)
+                        seventhInterval = 10
+                    case .diminished:
+                        // Diminished 7th for diminished chords (9 semitones)
+                        seventhInterval = 9
+                    }
+                    chordIntervals.append(seventhInterval)
+                }
+                
+                // Add 9th if selected (always major 9th = 14 semitones = octave + major 2nd)
+                if is9thPressed {
+                    chordIntervals.append(14)
+                }
+                
+                let chordNotes = chordIntervals.map { interval in
+                    scaleNote + UInt8(interval)
+                }
+                
+                // Apply inversions
+                var finalChordNotes = chordNotes
+                if isFirstInversionPressed && chordNotes.count >= 3 {
+                    // First inversion: move root up an octave
+                    finalChordNotes = Array(chordNotes.dropFirst()) + [chordNotes[0] + 12]
+                } else if isSecondInversionPressed && chordNotes.count >= 3 {
+                    // Second inversion: move root and third up an octave
+                    if chordNotes.count >= 3 {
+                        finalChordNotes = Array(chordNotes.dropFirst(2)) + [chordNotes[0] + 12, chordNotes[1] + 12]
+                    }
+                }
+                
+                let noteNames = finalChordNotes.map { note in
+                    noteToName(note)
+                }
+                
+                // Add octave indicator to roman numeral for higher octaves
+                let octaveRomanNumeral = octave == 0 ? romanNumerals[degree] : 
+                                        octave == 1 ? romanNumerals[degree] + "'" :
+                                        romanNumerals[degree] + "''"
+                
+                return ChordInfo(
+                    romanNumeral: octaveRomanNumeral,
+                    quality: quality,
+                    rootNote: scaleNote,
+                    notes: finalChordNotes,
+                    noteNames: noteNames
+                )
             }
             
-            let noteNames = chordNotes.map { note in
-                noteToName(note)
-            }
-            
-            return ChordInfo(
-                romanNumeral: romanNumerals[degree],
-                quality: quality,
-                rootNote: scaleNote,
-                notes: chordNotes,
-                noteNames: noteNames
-            )
+            allChords.append(contentsOf: octaveChords)
         }
+        
+        return allChords
     }
     
     func noteToName(_ midiNote: UInt8) -> String {
@@ -188,14 +246,128 @@ struct ContentView: View {
                         }
                     }
                     
-                    // Chord buttons
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 5) {
-                        ForEach(Array(chords.enumerated()), id: \.offset) { index, chord in
-                            ChordButton(
-                                chord: chord,
-                                midiController: midiController
-                            )
+                    // Chord buttons in three rows (three octaves)
+                    VStack(spacing: 8) {
+                        // High octave label and buttons (row 3)
+                        VStack(spacing: 4) {
+                            HStack {
+                                Text("HIGH OCTAVE")
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                            }
+                            
+                            HStack(spacing: 5) {
+                                ForEach(Array(chords[14..<21].enumerated()), id: \.offset) { index, chord in
+                                    ChordButton(
+                                        chord: chord,
+                                        midiController: midiController,
+                                        add7th: is7thPressed,
+                                        add9th: is9thPressed,
+                                        isFirstInversion: isFirstInversionPressed,
+                                        isSecondInversion: isSecondInversionPressed
+                                    )
+                                    .frame(height: 70) // Slightly smaller for three rows
+                                }
+                            }
                         }
+                        
+                        // Middle octave label and buttons (row 2)
+                        VStack(spacing: 4) {
+                            HStack {
+                                Text("MIDDLE OCTAVE")
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                            }
+                            
+                            HStack(spacing: 5) {
+                                ForEach(Array(chords[7..<14].enumerated()), id: \.offset) { index, chord in
+                                    ChordButton(
+                                        chord: chord,
+                                        midiController: midiController,
+                                        add7th: is7thPressed,
+                                        add9th: is9thPressed,
+                                        isFirstInversion: isFirstInversionPressed,
+                                        isSecondInversion: isSecondInversionPressed
+                                    )
+                                    .frame(height: 70) // Slightly smaller for three rows
+                                }
+                            }
+                        }
+                        
+                        // Low octave label and buttons (row 1)
+                        VStack(spacing: 4) {
+                            HStack {
+                                Text("LOW OCTAVE")
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                            }
+                            
+                            HStack(spacing: 5) {
+                                ForEach(Array(chords[0..<7].enumerated()), id: \.offset) { index, chord in
+                                    ChordButton(
+                                        chord: chord,
+                                        midiController: midiController,
+                                        add7th: is7thPressed,
+                                        add9th: is9thPressed,
+                                        isFirstInversion: isFirstInversionPressed,
+                                        isSecondInversion: isSecondInversionPressed
+                                    )
+                                    .frame(height: 70) // Slightly smaller for three rows
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    // Extension buttons row
+                    HStack(spacing: 15) {
+                        // 7th button
+                        ExtensionButton(
+                            title: "7th",
+                            isPressed: $is7thPressed
+                        )
+                        .frame(width: 80)
+                        
+                        // 9th button  
+                        ExtensionButton(
+                            title: "9th",
+                            isPressed: $is9thPressed
+                        )
+                        .frame(width: 80)
+                        
+                        // First inversion button
+                        ExtensionButton(
+                            title: "1st",
+                            isPressed: $isFirstInversionPressed,
+                            onPress: {
+                                // If activating first inversion, deactivate second inversion
+                                if !isFirstInversionPressed {
+                                    isSecondInversionPressed = false
+                                }
+                            },
+                            color: .purple
+                        )
+                        .frame(width: 80)
+                        
+                        // Second inversion button
+                        ExtensionButton(
+                            title: "2nd",
+                            isPressed: $isSecondInversionPressed,
+                            onPress: {
+                                // If activating second inversion, deactivate first inversion
+                                if !isSecondInversionPressed {
+                                    isFirstInversionPressed = false
+                                }
+                            },
+                            color: .purple
+                        )
+                        .frame(width: 80)
                     }
                     .padding(.horizontal)
                     
@@ -1065,6 +1237,10 @@ struct IntegerCircularSlider: View {
 struct ChordButton: View {
     let chord: ChordInfo
     let midiController: MIDIController
+    let add7th: Bool
+    let add9th: Bool
+    let isFirstInversion: Bool
+    let isSecondInversion: Bool
     @State private var isPressed = false
     
     var body: some View {
@@ -1091,7 +1267,7 @@ struct ChordButton: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 80)
+            .frame(minHeight: 70) // Use minHeight instead of fixed height
             .background(
                 RoundedRectangle(cornerRadius: 5)
                     .fill(isPressed ? Color.blue : Color(.systemGray5))
@@ -1121,10 +1297,76 @@ struct ChordButton: View {
     }
     
     private func chordQualityText(_ quality: ChordQuality) -> String {
+        var baseText: String
         switch quality {
-        case .major: return "Major"
-        case .minor: return "minor"
-        case .diminished: return "diminished"
+        case .major: baseText = "Major"
+        case .minor: baseText = "minor"
+        case .diminished: baseText = "diminished"
         }
+        
+        // Add extension and inversion indicators
+        var modifiers: [String] = []
+        if add7th { modifiers.append("7") }
+        if add9th { modifiers.append("9") }
+        if isFirstInversion { modifiers.append("1st inv") }
+        if isSecondInversion { modifiers.append("2nd inv") }
+        
+        if !modifiers.isEmpty {
+            baseText += " (" + modifiers.joined(separator: ", ") + ")"
+        }
+        
+        return baseText
+    }
+}
+
+// MARK: - Extension Button Component
+
+struct ExtensionButton: View {
+    let title: String
+    @Binding var isPressed: Bool
+    let onPress: (() -> Void)?
+    let color: Color
+    
+    init(title: String, isPressed: Binding<Bool>, onPress: (() -> Void)? = nil, color: Color = .orange) {
+        self.title = title
+        self._isPressed = isPressed
+        self.onPress = onPress
+        self.color = color
+    }
+    
+    var body: some View {
+        Button(action: {}) {
+            Text(title)
+                .font(.title2)
+                .fontWeight(.bold)
+                .foregroundColor(isPressed ? .white : .primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 70) // Match chord button height
+                .background(
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(isPressed ? color : Color(.systemGray5))
+                        .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
+                )
+                .scaleEffect(isPressed ? 0.95 : 1.0)
+                .animation(.easeInOut(duration: 0.1), value: isPressed)
+        }
+        .buttonStyle(PlainButtonStyle())
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 0)
+                .onChanged { _ in
+                    if !isPressed {
+                        // Call the onPress callback before setting isPressed
+                        onPress?()
+                        isPressed = true
+                        
+                        // Haptic feedback
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.impactOccurred()
+                    }
+                }
+                .onEnded { _ in
+                    isPressed = false
+                }
+        )
     }
 }
