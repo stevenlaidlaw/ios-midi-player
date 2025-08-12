@@ -187,13 +187,9 @@ struct ContentView: View {
                             }
                         }
                     }
-                    .padding()
-                    .background(Color(.systemGray5))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
                     
                     // Chord buttons
-                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 2), spacing: 15) {
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 5) {
                         ForEach(Array(chords.enumerated()), id: \.offset) { index, chord in
                             ChordButton(
                                 chord: chord,
@@ -1097,7 +1093,7 @@ struct ChordButton: View {
             .frame(maxWidth: .infinity)
             .frame(height: 80)
             .background(
-                RoundedRectangle(cornerRadius: 10)
+                RoundedRectangle(cornerRadius: 5)
                     .fill(isPressed ? Color.blue : Color(.systemGray5))
                     .shadow(color: .black.opacity(0.1), radius: 2, x: 0, y: 1)
             )
