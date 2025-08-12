@@ -7,9 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5765FB2D2E4B8ACC00667E59 /* EnvelopeEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5765FB2A2E4B8ACC00667E59 /* EnvelopeEngine.swift */; };
-		5765FB2E2E4B8ACC00667E59 /* FilterEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5765FB2B2E4B8ACC00667E59 /* FilterEngine.swift */; };
-		5765FB2F2E4B8ACC00667E59 /* OscillatorEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5765FB2C2E4B8ACC00667E59 /* OscillatorEngine.swift */; };
 		A1234567890123456789012A /* MIDIPlayerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890123456789012B /* MIDIPlayerApp.swift */; };
 		A1234567890123456789012C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890123456789012D /* ContentView.swift */; };
 		A1234567890123456789012E /* MIDIController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890123456789012F /* MIDIController.swift */; };
@@ -19,9 +16,6 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		5765FB2A2E4B8ACC00667E59 /* EnvelopeEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvelopeEngine.swift; sourceTree = "<group>"; };
-		5765FB2B2E4B8ACC00667E59 /* FilterEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilterEngine.swift; sourceTree = "<group>"; };
-		5765FB2C2E4B8ACC00667E59 /* OscillatorEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OscillatorEngine.swift; sourceTree = "<group>"; };
 		A1234567890123456789012B /* MIDIPlayerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIDIPlayerApp.swift; sourceTree = "<group>"; };
 		A1234567890123456789012D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1234567890123456789012F /* MIDIController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MIDIController.swift; sourceTree = "<group>"; };
@@ -45,19 +39,9 @@
 		5765FB262E4B8A0400667E59 /* Synthesizer Engine */ = {
 			isa = PBXGroup;
 			children = (
-				5765FB2A2E4B8ACC00667E59 /* EnvelopeEngine.swift */,
-				5765FB2B2E4B8ACC00667E59 /* FilterEngine.swift */,
-				5765FB2C2E4B8ACC00667E59 /* OscillatorEngine.swift */,
 				A1234567890123456789012H /* SynthEngine.swift */,
 			);
 			path = "Synthesizer Engine";
-			sourceTree = "<group>";
-		};
-		5765FB272E4B8A1300667E59 /* UI Components */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = "UI Components";
 			sourceTree = "<group>";
 		};
 		5765FB282E4B8A3000667E59 /* MIDI */ = {
@@ -90,7 +74,6 @@
 			children = (
 				5765FB292E4B8A3600667E59 /* App */,
 				5765FB282E4B8A3000667E59 /* MIDI */,
-				5765FB272E4B8A1300667E59 /* UI Components */,
 				5765FB262E4B8A0400667E59 /* Synthesizer Engine */,
 				A1234567890123456789013B /* Assets.xcassets */,
 				A12345678901234567890143 /* Preview Content */,
@@ -188,9 +171,6 @@
 				A1234567890123456789012E /* MIDIController.swift in Sources */,
 				A1234567890123456789012G /* SynthEngine.swift in Sources */,
 				A1234567890123456789012A /* MIDIPlayerApp.swift in Sources */,
-				5765FB2D2E4B8ACC00667E59 /* EnvelopeEngine.swift in Sources */,
-				5765FB2E2E4B8ACC00667E59 /* FilterEngine.swift in Sources */,
-				5765FB2F2E4B8ACC00667E59 /* OscillatorEngine.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
