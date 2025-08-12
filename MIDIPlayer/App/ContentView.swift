@@ -20,7 +20,7 @@ struct ContentView: View {
     ]
     
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 5) {
             // Status indicator
             HStack {
                 Circle()
@@ -40,7 +40,7 @@ struct ContentView: View {
             .padding()
             
             // Piano keyboard layout
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 15) {
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 10) {
                 ForEach(notes, id: \.note) { noteInfo in
                     MIDIButton(
                         title: noteInfo.name,
@@ -55,15 +55,15 @@ struct ContentView: View {
             Spacer()
             
             // Control panel
-            VStack(spacing: 15) {
+            VStack(spacing: 5) {
                 // MIDI Controls
-                VStack(spacing: 10) {
+                VStack(spacing: 5) {
                     Text("MIDI CONTROLS")
                         .font(.caption)
                         .fontWeight(.bold)
                         .foregroundColor(.secondary)
                     
-                    HStack(spacing: 20) {
+                    HStack(spacing: 5) {
                         // Velocity knob
                         IntegerCircularSlider(
                             value: Binding(
@@ -78,7 +78,7 @@ struct ContentView: View {
                         Spacer()
                         
                         // MIDI Channel picker
-                        VStack(spacing: 8) {
+                        VStack(spacing: 5) {
                             Text("MIDI\nCHANNEL")
                                 .font(.caption2)
                                 .fontWeight(.medium)
@@ -114,7 +114,7 @@ struct ContentView: View {
                 Divider()
                 
                 // Synthesizer Controls
-                VStack(spacing: 10) {
+                VStack(spacing: 5) {
                     HStack {
                         Text("Internal Synthesizer")
                             .font(.headline)
@@ -130,15 +130,7 @@ struct ContentView: View {
                     }
                     
                     // Three DCO Oscillator Controls
-                    VStack(spacing: 15) {
-                        HStack {
-                            Text("DCO OSCILLATORS")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
-                        
+                    HStack {
                         // OSC 1
                         OscillatorControlView(
                             title: "OSC 1",
@@ -149,8 +141,6 @@ struct ContentView: View {
                             synthEngine: midiController.synthEngine,
                             oscIndex: 0
                         )
-                        
-                        Divider()
                         
                         // OSC 2
                         OscillatorControlView(
@@ -180,14 +170,11 @@ struct ContentView: View {
                     Divider()
                     
                     // ADSR Controls - Hardware Synth Style Layout
-                    VStack(spacing: 12) {
-                        HStack {
-                            Text("ADSR ENVELOPE")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
+                    VStack(spacing: 2) {
+                        Text("AMP ENVELOPE")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundColor(.secondary)
                         
                         // ADSR knobs in a row like hardware synths
                         HStack(spacing: 15) {
@@ -249,165 +236,162 @@ struct ContentView: View {
                         .padding(.horizontal)
                     }
                     
-                    Divider()
-                    
-                    // Filter Section
-                    VStack(spacing: 12) {
-                        HStack {
+                    HStack(spacing: 5) {
+                        // Filter Section
+                        VStack(spacing: 5) {
                             Text("FILTER")
                                 .font(.caption)
                                 .fontWeight(.bold)
                                 .foregroundColor(.secondary)
-                            Spacer()
-                        }
-                        
-                        // Filter type dropdown
-                        HStack {
-                            Text("FILTER TYPE:")
-                                .font(.caption2)
-                                .fontWeight(.medium)
                             
-                            Spacer()
-                            
-                            Picker("Filter Type", selection: Binding(
-                                get: { midiController.synthEngine.filterSettings.type },
-                                set: { newType in
-                                    var newSettings = midiController.synthEngine.filterSettings
-                                    newSettings.type = newType
-                                    midiController.synthEngine.updateFilterSettings(newSettings)
+                            // Filter type dropdown
+                            HStack {
+                                Text("FILTER TYPE:")
+                                    .font(.caption2)
+                                    .fontWeight(.medium)
+                                
+                                Spacer()
+                                
+                                Picker("Filter Type", selection: Binding(
+                                    get: { midiController.synthEngine.filterSettings.type },
+                                    set: { newType in
+                                        var newSettings = midiController.synthEngine.filterSettings
+                                        newSettings.type = newType
+                                        midiController.synthEngine.updateFilterSettings(newSettings)
+                                    }
+                                )) {
+                                    ForEach(FilterType.allCases, id: \.self) { filterType in
+                                        Text(filterType.rawValue).tag(filterType)
+                                    }
                                 }
-                            )) {
-                                ForEach(FilterType.allCases, id: \.self) { filterType in
-                                    Text(filterType.rawValue).tag(filterType)
-                                }
+                                .pickerStyle(MenuPickerStyle())
+                                .frame(width: 120)
                             }
-                            .pickerStyle(MenuPickerStyle())
-                            .frame(width: 120)
+                            
+                            // Filter controls
+                            HStack(spacing: 5) {
+                                CircularSlider(
+                                    value: Binding(
+                                        get: { Double(midiController.synthEngine.filterSettings.cutoff) },
+                                        set: { newValue in
+                                            var settings = midiController.synthEngine.filterSettings
+                                            settings.cutoff = Float(newValue)
+                                            midiController.synthEngine.updateFilterSettings(settings)
+                                        }
+                                    ),
+                                    range: 20...20000,
+                                    label: "CUTOFF",
+                                    unit: "Hz",
+                                    step: 10,
+                                    formatString: "%.0f"
+                                )
+                                
+                                CircularSlider(
+                                    value: Binding(
+                                        get: { Double(midiController.synthEngine.filterSettings.resonance) },
+                                        set: { newValue in
+                                            var settings = midiController.synthEngine.filterSettings
+                                            settings.resonance = Float(newValue)
+                                            midiController.synthEngine.updateFilterSettings(settings)
+                                        }
+                                    ),
+                                    range: 0.1...10.0,
+                                    label: "RES",
+                                    unit: "",
+                                    step: 0.1,
+                                    formatString: "%.1f"
+                                )
+                                
+                                CircularSlider(
+                                    value: Binding(
+                                        get: { Double(midiController.synthEngine.filterSettings.envelopeAmount * 100) },
+                                        set: { newValue in
+                                            var settings = midiController.synthEngine.filterSettings
+                                            settings.envelopeAmount = Float(newValue / 100.0)
+                                            midiController.synthEngine.updateFilterSettings(settings)
+                                        }
+                                    ),
+                                    range: -100...100,
+                                    label: "ENV\nAMT",
+                                    unit: "%",
+                                    step: 1,
+                                    formatString: "%.0f"
+                                )
+                            }
+                            .padding(.horizontal)
                         }
                         
-                        // Filter controls
-                        HStack(spacing: 15) {
-                            CircularSlider(
-                                value: Binding(
-                                    get: { Double(midiController.synthEngine.filterSettings.cutoff) },
-                                    set: { newValue in
-                                        var settings = midiController.synthEngine.filterSettings
-                                        settings.cutoff = Float(newValue)
-                                        midiController.synthEngine.updateFilterSettings(settings)
-                                    }
-                                ),
-                                range: 20...20000,
-                                label: "CUTOFF",
-                                unit: "Hz",
-                                step: 10,
-                                formatString: "%.0f"
-                            )
-                            
-                            CircularSlider(
-                                value: Binding(
-                                    get: { Double(midiController.synthEngine.filterSettings.resonance) },
-                                    set: { newValue in
-                                        var settings = midiController.synthEngine.filterSettings
-                                        settings.resonance = Float(newValue)
-                                        midiController.synthEngine.updateFilterSettings(settings)
-                                    }
-                                ),
-                                range: 0.1...10.0,
-                                label: "RES",
-                                unit: "",
-                                step: 0.1,
-                                formatString: "%.1f"
-                            )
-                            
-                            CircularSlider(
-                                value: Binding(
-                                    get: { Double(midiController.synthEngine.filterSettings.envelopeAmount * 100) },
-                                    set: { newValue in
-                                        var settings = midiController.synthEngine.filterSettings
-                                        settings.envelopeAmount = Float(newValue / 100.0)
-                                        midiController.synthEngine.updateFilterSettings(settings)
-                                    }
-                                ),
-                                range: -100...100,
-                                label: "ENV\nAMT",
-                                unit: "%",
-                                step: 1,
-                                formatString: "%.0f"
-                            )
-                        }
-                        .padding(.horizontal)
-                    }
-                    
-                    Divider()
-                    
-                    // Filter ADSR Controls
-                    VStack(spacing: 12) {
-                        HStack {
-                            Text("FILTER ENVELOPE")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                        }
+                        Divider()
                         
-                        // Filter ADSR knobs in a row
-                        HStack(spacing: 15) {
-                            TimeCircularSlider(
-                                value: Binding(
-                                    get: { Double(midiController.synthEngine.filterAdsrSettings.attack) },
-                                    set: { newValue in
-                                        var settings = midiController.synthEngine.filterAdsrSettings
-                                        settings.attack = Float(newValue)
-                                        midiController.synthEngine.updateFilterADSRSettings(settings)
-                                    }
-                                ),
-                                label: "ATTACK",
-                                maxTime: 2.0
-                            )
+                        // Filter ADSR Controls
+                        VStack(spacing: 5) {
+                            HStack {
+                                Text("FILTER ENVELOPE")
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.secondary)
+                                Spacer()
+                            }
                             
-                            TimeCircularSlider(
-                                value: Binding(
-                                    get: { Double(midiController.synthEngine.filterAdsrSettings.decay) },
-                                    set: { newValue in
-                                        var settings = midiController.synthEngine.filterAdsrSettings
-                                        settings.decay = Float(newValue)
-                                        midiController.synthEngine.updateFilterADSRSettings(settings)
-                                    }
-                                ),
-                                label: "DECAY",
-                                maxTime: 2.0
-                            )
-                            
-                            CircularSlider(
-                                value: Binding(
-                                    get: { Double(midiController.synthEngine.filterAdsrSettings.sustain) * 100 },
-                                    set: { newValue in
-                                        var settings = midiController.synthEngine.filterAdsrSettings
-                                        settings.sustain = Float(newValue / 100.0)
-                                        midiController.synthEngine.updateFilterADSRSettings(settings)
-                                    }
-                                ),
-                                range: 0...100,
-                                label: "SUSTAIN",
-                                unit: "%",
-                                step: 1,
-                                formatString: "%.0f"
-                            )
-                            
-                            TimeCircularSlider(
-                                value: Binding(
-                                    get: { Double(midiController.synthEngine.filterAdsrSettings.release) },
-                                    set: { newValue in
-                                        var settings = midiController.synthEngine.filterAdsrSettings
-                                        settings.release = Float(newValue)
-                                        midiController.synthEngine.updateFilterADSRSettings(settings)
-                                    }
-                                ),
-                                label: "RELEASE",
-                                maxTime: 3.0
-                            )
+                            // Filter ADSR knobs in a row
+                            HStack(spacing: 5) {
+                                TimeCircularSlider(
+                                    value: Binding(
+                                        get: { Double(midiController.synthEngine.filterAdsrSettings.attack) },
+                                        set: { newValue in
+                                            var settings = midiController.synthEngine.filterAdsrSettings
+                                            settings.attack = Float(newValue)
+                                            midiController.synthEngine.updateFilterADSRSettings(settings)
+                                        }
+                                    ),
+                                    label: "ATTACK",
+                                    maxTime: 2.0
+                                )
+                                
+                                TimeCircularSlider(
+                                    value: Binding(
+                                        get: { Double(midiController.synthEngine.filterAdsrSettings.decay) },
+                                        set: { newValue in
+                                            var settings = midiController.synthEngine.filterAdsrSettings
+                                            settings.decay = Float(newValue)
+                                            midiController.synthEngine.updateFilterADSRSettings(settings)
+                                        }
+                                    ),
+                                    label: "DECAY",
+                                    maxTime: 2.0
+                                )
+                                
+                                CircularSlider(
+                                    value: Binding(
+                                        get: { Double(midiController.synthEngine.filterAdsrSettings.sustain) * 100 },
+                                        set: { newValue in
+                                            var settings = midiController.synthEngine.filterAdsrSettings
+                                            settings.sustain = Float(newValue / 100.0)
+                                            midiController.synthEngine.updateFilterADSRSettings(settings)
+                                        }
+                                    ),
+                                    range: 0...100,
+                                    label: "SUSTAIN",
+                                    unit: "%",
+                                    step: 1,
+                                    formatString: "%.0f"
+                                )
+                                
+                                TimeCircularSlider(
+                                    value: Binding(
+                                        get: { Double(midiController.synthEngine.filterAdsrSettings.release) },
+                                        set: { newValue in
+                                            var settings = midiController.synthEngine.filterAdsrSettings
+                                            settings.release = Float(newValue)
+                                            midiController.synthEngine.updateFilterADSRSettings(settings)
+                                        }
+                                    ),
+                                    label: "RELEASE",
+                                    maxTime: 3.0
+                                )
+                            }
+                            .padding(.horizontal)
                         }
-                        .padding(.horizontal)
                     }
                     
                     Button("PANIC - Stop All Sound") {
@@ -622,7 +606,7 @@ struct OscillatorControlView: View {
     let oscIndex: Int
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack {
             // Oscillator title
             HStack {
                 Text(title)
@@ -633,9 +617,9 @@ struct OscillatorControlView: View {
             }
             
             // Waveform and basic controls row
-            HStack(spacing: 12) {
+            HStack(spacing: 5) {
                 // Waveform dropdown
-                VStack(spacing: 4) {
+                VStack(spacing: 5) {
                     Text("WAVE")
                         .font(.caption2)
                         .fontWeight(.medium)
@@ -672,7 +656,7 @@ struct OscillatorControlView: View {
             }
             
             // Pitch and detuning controls row
-            HStack(spacing: 12) {
+            HStack(spacing: 5) {
                 // Pitch
                 CircularSlider(
                     value: Binding(
@@ -778,7 +762,7 @@ struct CircularSlider: View {
     }
     
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 5) {
             // Label
             Text(label)
                 .font(.caption2)
