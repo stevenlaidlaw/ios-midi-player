@@ -163,30 +163,80 @@ class SynthEngine: ObservableObject {
         let frequency = noteToFrequency(note: note)
         let amplitude = Float(velocity) / 127.0
         
-        // Create oscillators for this note
-        let oscillators = oscillatorEngine.createOscillatorsForNote(note, baseFrequency: frequency, velocityAmplitude: amplitude, noteMixer: mixer)
+        // Create filter for this note
+        let filter = filterEngine.createFilter(for: note)
         
-        // Store the note info (simplified - no envelope for now)
-        activeNotes[note] = (oscillators: oscillators, envelope: ADSREnvelope(settings: ADSRSettings()))
+        // Create oscillators for this note (they will connect through the filter)
+        let oscillators = oscillatorEngine.createOscillatorsForNote(note, baseFrequency: frequency, velocityAmplitude: amplitude, filter: filter, finalMixer: mixer)
         
-        // Set initial volume for all oscillators
-        for oscillator in oscillators {
-            oscillator.volume = amplitude * volume // Apply velocity and master volume
+        // Create envelopes for this note
+        envelopeEngine.createEnvelopesForNote(note)
+        
+        // Store the note info with envelope
+        if let envelope = envelopeEngine.getEnvelope(for: note) {
+            activeNotes[note] = (oscillators: oscillators, envelope: envelope)
+            
+            // Start envelope control timer for volume
+            envelopeEngine.startEnvelopeTimer(for: note) { [weak self] envelopeLevel in
+                guard let self = self else { return }
+                self.oscillatorEngine.updateVolumeForNote(note, envelopeLevel: envelopeLevel, masterVolume: self.volume)
+            }
+            
+            // Start filter envelope timer
+            if let filterEnvelope = envelopeEngine.getFilterEnvelope(for: note) {
+                envelopeEngine.startFilterEnvelopeTimer(for: note) { [weak self] envelope in
+                    guard let self = self else { return }
+                    self.filterEngine.updateFilterWithEnvelope(for: note, envelope: envelope)
+                }
+            }
+        } else {
+            // Fallback without envelope
+            activeNotes[note] = (oscillators: oscillators, envelope: ADSREnvelope(settings: ADSRSettings()))
+            
+            // Set initial volume for all oscillators
+            for oscillator in oscillators {
+                oscillator.volume = amplitude * volume
+            }
         }
         
-        print("🎵 Playing note \(note) with \(oscillators.count) oscillators")
+        print("🎵 Playing note \(note) with \(oscillators.count) oscillators, envelope, and filter")
     }
     
     func stopNote(_ note: UInt8) {
+        // Release the envelope (start release phase)
+        envelopeEngine.releaseNote(note)
+        
+        // The envelope timer will handle the fade-out and eventual removal of the note
+        // For now, we'll remove the note after a short delay to allow for release
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) { [weak self] in
+            self?.removeNote(note)
+        }
+        
+        print("🔇 Released note \(note) (will fade out)")
+    }
+    
+    private func removeNote(_ note: UInt8) {
+        // Stop oscillators
         oscillatorEngine.stopOscillatorsForNote(note)
+        
+        // Remove filter
+        filterEngine.removeFilter(for: note)
+        
+        // Remove envelopes
+        envelopeEngine.removeEnvelopesForNote(note)
+        
+        // Remove from active notes
         activeNotes.removeValue(forKey: note)
-        print("🔇 Stopped note \(note)")
+        
+        print("�️ Completely removed note \(note)")
     }
     
     func stopAllNotes() {
         oscillatorEngine.stopAllOscillators()
+        filterEngine.stopAllFilters()
+        envelopeEngine.stopAllEnvelopes()
         activeNotes.removeAll()
-        print("� Stopped all notes")
+        print("🛑 Stopped all notes")
     }
     
     private func noteToFrequency(note: UInt8) -> Float {

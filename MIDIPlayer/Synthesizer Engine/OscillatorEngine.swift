@@ -22,21 +22,31 @@ class OscillatorEngine {
     private var audioEngine: AVAudioEngine
     private var oscillators: [UInt8: [AVAudioPlayerNode]] = [:]  // Array of 3 oscillators per note
     private var audioBuffers: [UInt8: [AVAudioPCMBuffer]] = [:] // Array of 3 buffers per note
+    private var noteMixers: [UInt8: AVAudioMixerNode] = [:]     // One mixer per note
     
-    var osc1Settings = OscillatorSettings(waveform: .sawtooth, level: 1.0)
-    var osc2Settings = OscillatorSettings(waveform: .sawtooth, detune: 21.0, level: 1.0)
-    var osc3Settings = OscillatorSettings(waveform: .sawtooth, pitch: -12.0, detune: -18.0, level: 1.0,)
+    var osc1Settings = OscillatorSettings(waveform: .sine, level: 1.0)
+    var osc2Settings = OscillatorSettings(waveform: .sawtooth, pitch: 12.0, level: 0.7)
+    var osc3Settings = OscillatorSettings(waveform: .square, pitch: -12.0, level: 0.5)
     
     init(audioEngine: AVAudioEngine) {
         self.audioEngine = audioEngine
     }
     
-    func createOscillatorsForNote(_ note: UInt8, baseFrequency: Float, velocityAmplitude: Float, noteMixer: AVAudioMixerNode) -> [AVAudioPlayerNode] {
+    func createOscillatorsForNote(_ note: UInt8, baseFrequency: Float, velocityAmplitude: Float, filter: AVAudioUnitEQ, finalMixer: AVAudioMixerNode) -> [AVAudioPlayerNode] {
         // Create arrays for the three oscillators
         var noteOscillators: [AVAudioPlayerNode] = []
         var noteBuffers: [AVAudioPCMBuffer] = []
         
         let oscillatorSettings = [osc1Settings, osc2Settings, osc3Settings]
+        
+        // Create a mixer for this note's oscillators
+        let noteMixer = AVAudioMixerNode()
+        audioEngine.attach(noteMixer)
+        
+        // Connect: Note Mixer -> Filter -> Final Mixer
+        audioEngine.attach(filter)
+        audioEngine.connect(noteMixer, to: filter, format: nil)
+        audioEngine.connect(filter, to: finalMixer, format: nil)
         
         // Create three oscillators
         for (oscIndex, oscSettings) in oscillatorSettings.enumerated() {
@@ -73,13 +83,14 @@ class OscillatorEngine {
             // Schedule buffer with looping
             playerNode.scheduleBuffer(buffer, at: nil, options: .loops, completionHandler: nil)
             
-            // Start playing immediately (volume will be set by the SynthEngine)
+            // Start playing immediately (volume will be controlled by envelope)
             playerNode.play()
         }
         
         // Store references
         oscillators[note] = noteOscillators
         audioBuffers[note] = noteBuffers
+        noteMixers[note] = noteMixer
         
         return noteOscillators
     }
@@ -93,8 +104,14 @@ class OscillatorEngine {
             audioEngine.detach(playerNode)
         }
         
+        // Remove and detach the note mixer
+        if let noteMixer = noteMixers[note] {
+            audioEngine.detach(noteMixer)
+        }
+        
         oscillators.removeValue(forKey: note)
         audioBuffers.removeValue(forKey: note)
+        noteMixers.removeValue(forKey: note)
     }
     
     func updateVolumeForNote(_ note: UInt8, envelopeLevel: Float, masterVolume: Float) {
@@ -120,6 +137,7 @@ class OscillatorEngine {
     
     func regenerateAllOscillators() {
         // Regenerate buffers for all currently playing notes with new oscillator settings
+        // This is a simplified approach - in practice we'd want to avoid audio glitches
         for (note, playerNodes) in oscillators {
             let baseFrequency = noteToFrequency(note: note)
             let velocityAmplitude = Float(1.0) // Use current amplitude
@@ -159,6 +177,8 @@ class OscillatorEngine {
                 playerNode.play()
             }
         }
+        
+        print("🔄 Regenerated oscillators for \(oscillators.count) active notes")
     }
     
     func stopAllOscillators() {
@@ -171,8 +191,14 @@ class OscillatorEngine {
             }
         }
         
+        // Stop and detach all note mixers
+        for (_, noteMixer) in noteMixers {
+            audioEngine.detach(noteMixer)
+        }
+        
         oscillators.removeAll()
         audioBuffers.removeAll()
+        noteMixers.removeAll()
     }
     
     var activeNoteCount: Int {

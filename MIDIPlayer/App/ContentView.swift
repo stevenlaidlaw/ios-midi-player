@@ -783,7 +783,7 @@ struct CircularSlider: View {
                 
                 // Indicator line
                 Rectangle()
-                    .fill(Color.white)
+                    .fill(Color.accentColor)
                     .frame(width: 2, height: 10)
                     .offset(y: -11)
                     .rotationEffect(.degrees(angle))
