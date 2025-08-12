@@ -710,7 +710,7 @@ struct OscillatorControlView: View {
                 } else {
                     // Spacer to maintain layout
                     Spacer()
-                        .frame(width: 70)
+                        .frame(width: 47)
                 }
             }
         }
@@ -762,7 +762,7 @@ struct CircularSlider: View {
     }
     
     var body: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 1) {
             // Label
             Text(label)
                 .font(.caption2)
@@ -776,7 +776,7 @@ struct CircularSlider: View {
                 // Background track
                 Circle()
                     .trim(from: 0, to: 0.75)
-                    .stroke(Color.gray.opacity(0.3), lineWidth: 3)
+                    .stroke(Color.gray.opacity(0.5), lineWidth: 3)
                     .rotationEffect(.degrees(-225))
                 
                 // Active track
@@ -794,7 +794,7 @@ struct CircularSlider: View {
                 
                 // Knob body
                 Circle()
-                    .frame(width: 50, height: 50)
+                    .frame(width: 33, height: 33)
                     .overlay(
                         Circle()
                             .stroke(Color.gray.opacity(0.4), lineWidth: 1)
@@ -803,17 +803,12 @@ struct CircularSlider: View {
                 
                 // Indicator line
                 Rectangle()
-                    .fill(Color.red)
-                    .frame(width: 2, height: 15)
-                    .offset(y: -17)
+                    .fill(Color.white)
+                    .frame(width: 2, height: 10)
+                    .offset(y: -11)
                     .rotationEffect(.degrees(angle))
-                
-                // Center dot
-                Circle()
-                    .fill(Color.black)
-                    .frame(width: 4, height: 4)
             }
-            .frame(width: 60, height: 60)
+            .frame(width: 40, height: 40)
             .scaleEffect(isDragging ? 1.05 : 1.0)
             .animation(.easeInOut(duration: 0.1), value: isDragging)
             .gesture(
@@ -828,9 +823,9 @@ struct CircularSlider: View {
                             impactFeedback.impactOccurred()
                         }
                         
-                        // Calculate horizontal drag distance for left/right control
-                        let dragDistance = gestureValue.translation.width
-                        let sensitivity: Double = 150.0 // Pixels needed for full range
+                        // Calculate vertical drag distance for up/down control (negative for up = increase)
+                        let dragDistance = -gestureValue.translation.height
+                        let sensitivity: Double = 100.0 // Pixels needed for full range
                         
                         // Calculate new value based on horizontal drag from start position
                         let dragRatio = dragDistance / sensitivity
@@ -861,7 +856,7 @@ struct CircularSlider: View {
                 .foregroundColor(.secondary)
                 .frame(height: 15)
         }
-        .frame(width: 70)
+        .frame(width: 47)
     }
 }
 
