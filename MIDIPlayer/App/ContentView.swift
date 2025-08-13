@@ -184,7 +184,7 @@ struct ContentView: View {
     func playChordWithHold(notes: [UInt8]) {
         if holdMode {
             // Stop all currently playing notes before playing the new chord
-            midiController.panic()
+            midiController.sendAllNotesOff()
         }
         // Play the new chord
         midiController.playChord(notes: notes)
@@ -290,10 +290,6 @@ struct ContentView: View {
                             // PANIC button
                             Button("PANIC") {
                                 midiController.panic()
-                                
-                                // Haptic feedback for panic button
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .heavy)
-                                impactFeedback.impactOccurred()
                             }
                             .buttonStyle(.borderedProminent)
                             .foregroundColor(.white)
@@ -402,7 +398,7 @@ struct ContentView: View {
         .onChange(of: holdMode) { newValue in
             // When hold mode is turned off, stop all currently playing notes
             if !newValue {
-                midiController.panic()
+                midiController.sendAllNotesOff()
             }
         }
     }
