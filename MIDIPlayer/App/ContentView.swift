@@ -210,14 +210,6 @@ struct ContentView: View {
                 
                 Spacer()
                 
-                // Hold toggle
-                Toggle("Hold", isOn: $holdMode)
-                    .font(.caption)
-                    .toggleStyle(SwitchToggleStyle(tint: .orange))
-                    .scaleEffect(0.8)
-                
-                Spacer()
-                
                 Text("MIDI Controller Only")
                     .font(.caption)
                     .foregroundColor(.secondary)
@@ -258,6 +250,12 @@ struct ContentView: View {
                             }
 
                             Spacer()
+                
+                            // Hold toggle
+                            Toggle("Hold", isOn: $holdMode)
+                                .font(.caption)
+                                .toggleStyle(SwitchToggleStyle(tint: .orange))
+                                .scaleEffect(0.8)
 
                             // Velocity control
                             IntegerCircularSlider(
