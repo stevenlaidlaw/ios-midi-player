@@ -22,9 +22,6 @@ class MIDIController: ObservableObject {
     private var sourceEndpoint: MIDIEndpointRef = 0
     
     func setupMIDI() {
-        // Configure audio session for MIDI
-        configureAudioSession()
-        
         // Create MIDI client
         let clientName = "MIDI Controller" as CFString
         let status = MIDIClientCreate(clientName, nil, nil, &midiClient)
@@ -77,11 +74,6 @@ class MIDIController: ObservableObject {
         
         // Request MIDI access permission
         requestMIDIAccess()
-    }
-    
-    private func configureAudioSession() {
-        // No longer needed since we removed the synth engine
-        print("Audio session configuration not needed for MIDI-only mode")
     }
     
     private func requestMIDIAccess() {
@@ -146,22 +138,21 @@ class MIDIController: ObservableObject {
         sendMIDIMessage(status: ccStatus, data1: controller, data2: value)
         print("Control Change: Controller \(controller) = \(value) on channel \(channel + 1)")
     }
-    
-    func panic() {
+
+    func sendAllNotesOff() {
         // Send All Notes Off (CC 123) to all external MIDI devices
         DispatchQueue.global(qos: .userInitiated).async {
-            let allNotesOffStatus: UInt8 = 0xB0 | self.channel // Control Change + channel
-            self.sendMIDIMessage(status: allNotesOffStatus, data1: 123, data2: 0) // CC 123 = All Notes Off
-            
-            // Also send All Sound Off (CC 120) for complete silence
-            self.sendMIDIMessage(status: allNotesOffStatus, data1: 120, data2: 0) // CC 120 = All Sound Off
+            self.sendMIDIMessage(status: 0xB0 | self.channel, data1: 123, data2: 0) // CC 123 = All Notes Off
+        }
+    }
+
+    func panic() {
+        sendAllNotesOff()
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.sendMIDIMessage(status: 0xB0 | self.channel, data1: 120, data2: 0) // CC 120 = All Sound Off
         }
         
         print("🚨 PANIC - All notes stopped (MIDI broadcast only)")
-    }
-    
-    func restartSynthEngine() {
-        print("🔄 Synth engine not available - removed from controller")
     }
     
     func listMIDIDestinations() {
