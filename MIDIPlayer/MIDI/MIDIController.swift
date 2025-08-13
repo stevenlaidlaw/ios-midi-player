@@ -14,8 +14,7 @@ private func midiReadProc(pktlist: UnsafePointer<MIDIPacketList>,
 class MIDIController: ObservableObject {
     @Published var isConnected = false
     @Published var velocity: Double = 80
-    @Published var channel: UInt8 = 0
-    @Published var synthEngine = SynthEngine()
+    @Published var channel: UInt8 = 2
     
     private var midiClient: MIDIClientRef = 0
     private var outputPort: MIDIPortRef = 0
@@ -25,11 +24,6 @@ class MIDIController: ObservableObject {
     func setupMIDI() {
         // Configure audio session for MIDI
         configureAudioSession()
-        
-        // Initialize synth engine first
-        if !synthEngine.isEngineRunning {
-            print("Synth engine is not running yet - it will auto-start")
-        }
         
         // Create MIDI client
         let clientName = "MIDI Controller" as CFString
@@ -86,9 +80,8 @@ class MIDIController: ObservableObject {
     }
     
     private func configureAudioSession() {
-        // Audio session is now handled by the SynthEngine to avoid conflicts
-        // The synth engine will configure the session for both MIDI and audio playback
-        print("Audio session configuration delegated to SynthEngine")
+        // No longer needed since we removed the synth engine
+        print("Audio session configuration not needed for MIDI-only mode")
     }
     
     private func requestMIDIAccess() {
@@ -100,29 +93,23 @@ class MIDIController: ObservableObject {
     func sendNoteOn(note: UInt8) {
         let velocityValue = UInt8(velocity)
         
-        // Play ONLY on internal synthesizer for immediate response
-        synthEngine.playNote(note, velocity: velocityValue)
+        // Broadcast to external MIDI devices only
+        DispatchQueue.global(qos: .userInitiated).async {
+            let noteOnStatus: UInt8 = 0x90 | self.channel // Note On + channel
+            self.sendMIDIMessage(status: noteOnStatus, data1: note, data2: velocityValue)
+        }
         
-        // Disable external MIDI broadcasting to eliminate latency
-        // DispatchQueue.global(qos: .userInitiated).async {
-        //     let noteOnStatus: UInt8 = 0x90 | self.channel // Note On + channel
-        //     self.sendMIDIMessage(status: noteOnStatus, data1: note, data2: velocityValue)
-        // }
-        
-        print("Note ON: \(note) with velocity \(velocityValue) - Internal synth only")
+        print("Note ON: \(note) with velocity \(velocityValue) - MIDI broadcast only")
     }
     
     func sendNoteOff(note: UInt8) {
-        // Stop ONLY on internal synthesizer for immediate response
-        synthEngine.stopNote(note)
+        // Broadcast to external MIDI devices only
+        DispatchQueue.global(qos: .userInitiated).async {
+            let noteOffStatus: UInt8 = 0x80 | self.channel // Note Off + channel
+            self.sendMIDIMessage(status: noteOffStatus, data1: note, data2: 0)
+        }
         
-        // Disable external MIDI broadcasting to eliminate latency
-        // DispatchQueue.global(qos: .userInitiated).async {
-        //     let noteOffStatus: UInt8 = 0x80 | self.channel // Note Off + channel
-        //     self.sendMIDIMessage(status: noteOffStatus, data1: note, data2: 0)
-        // }
-        
-        print("Note OFF: \(note) - Internal synth only")
+        print("Note OFF: \(note) - MIDI broadcast only")
     }
     
     // MARK: - Chord Functions
@@ -130,19 +117,27 @@ class MIDIController: ObservableObject {
     func playChord(notes: [UInt8]) {
         let velocityValue = UInt8(velocity)
         
-        for note in notes {
-            synthEngine.playNote(note, velocity: velocityValue)
+        // Broadcast to external MIDI devices only
+        DispatchQueue.global(qos: .userInitiated).async {
+            for note in notes {
+                let noteOnStatus: UInt8 = 0x90 | self.channel // Note On + channel
+                self.sendMIDIMessage(status: noteOnStatus, data1: note, data2: velocityValue)
+            }
         }
         
-        print("Chord ON: \(notes) with velocity \(velocityValue) - Internal synth only")
+        print("Chord ON: \(notes) with velocity \(velocityValue) - MIDI broadcast only")
     }
     
     func stopChord(notes: [UInt8]) {
-        for note in notes {
-            synthEngine.stopNote(note)
+        // Broadcast to external MIDI devices only
+        DispatchQueue.global(qos: .userInitiated).async {
+            for note in notes {
+                let noteOffStatus: UInt8 = 0x80 | self.channel // Note Off + channel
+                self.sendMIDIMessage(status: noteOffStatus, data1: note, data2: 0)
+            }
         }
         
-        print("Chord OFF: \(notes) - Internal synth only")
+        print("Chord OFF: \(notes) - MIDI broadcast only")
     }
     
     func sendControlChange(controller: UInt8, value: UInt8) {
@@ -153,13 +148,20 @@ class MIDIController: ObservableObject {
     }
     
     func panic() {
-        synthEngine.stopAllNotes()
-        print("🚨 PANIC - All notes stopped")
+        // Send All Notes Off (CC 123) to all external MIDI devices
+        DispatchQueue.global(qos: .userInitiated).async {
+            let allNotesOffStatus: UInt8 = 0xB0 | self.channel // Control Change + channel
+            self.sendMIDIMessage(status: allNotesOffStatus, data1: 123, data2: 0) // CC 123 = All Notes Off
+            
+            // Also send All Sound Off (CC 120) for complete silence
+            self.sendMIDIMessage(status: allNotesOffStatus, data1: 120, data2: 0) // CC 120 = All Sound Off
+        }
+        
+        print("🚨 PANIC - All notes stopped (MIDI broadcast only)")
     }
     
     func restartSynthEngine() {
-        synthEngine.restartEngine()
-        print("🔄 Synth engine restart requested")
+        print("🔄 Synth engine not available - removed from controller")
     }
     
     func listMIDIDestinations() {
@@ -205,11 +207,6 @@ class MIDIController: ObservableObject {
         print("External destinations available: \(destinationCount)")
         print("Virtual source available: \(sourceEndpoint != 0)")
         
-        // Synth engine info
-        print("--- Internal Synthesizer ---")
-        print("Engine running: \(synthEngine.isEngineRunning)")
-        print("Active notes: \(synthEngine.activeNoteCount)")
-        print("Volume: \(String(format: "%.2f", synthEngine.volume))")
         print("==================================")
     }
     
