@@ -393,9 +393,8 @@ struct ContentView: View {
         .onAppear {
             midiController.setupMIDI()
         }
-        .onChange(of: holdMode) { newValue in
-            // When hold mode is turned off, stop all currently playing notes
-            if !newValue {
+        .onChange(of: holdMode) {
+            if !holdMode {
                 midiController.sendAllNotesOff()
             }
         }
